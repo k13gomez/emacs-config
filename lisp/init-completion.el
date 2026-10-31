@@ -2,7 +2,16 @@
 
 (use-package vertico
   :config
-  (vertico-mode 1))
+  (vertico-mode 1)
+  (define-key vertico-map (kbd "C-t") #'my/vertico-exit-to-tab)
+  (define-key vertico-map (kbd "M-t") #'my/vertico-exit-to-tab))
+
+(defun my/vertico-exit-to-tab ()
+  "Accept the current candidate and show its buffer in a new tab, as Telescope's C-t does."
+  (interactive)
+  ;; The override only applies once the minibuffer has closed, so it works for any picker.
+  (other-tab-prefix)
+  (vertico-exit))
 
 (use-package orderless
   :config
