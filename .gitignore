@@ -1,0 +1,13 @@
+elpa/
+eln-cache/
+auto-save-list/
+transient/
+tree-sitter/
+undo-fu-session/
+.cache/
+custom.el
+history
+tramp
+*.eld
+treemacs-persist
+treemacs-persist-at-last-error
