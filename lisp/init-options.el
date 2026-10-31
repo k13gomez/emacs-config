@@ -48,5 +48,12 @@
   (setq xclip-method 'pbpaste)
   (xclip-mode 1))
 
+;; Terminal buffers stand in for tmux, so children must not think they're inside it:
+;; byobu-launch in .zshrc would nest a session, and the zsh tmux hooks would rename
+;; the window hosting Emacs.
+(setenv "TMUX")
+(setenv "TMUX_PANE")
+(setenv "BYOBU_DISABLE" "1")
+
 (provide 'init-options)
 ;;; init-options.el ends here

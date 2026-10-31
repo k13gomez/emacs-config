@@ -50,6 +50,12 @@
   "8" '(tab-bar-select-tab :which-key "tab 8")
   "9" '(tab-bar-select-tab :which-key "tab 9")
 
+  "T" '(:ignore t :which-key "terminal")
+  "Tt" '(my/term-tab :which-key "terminal in new tab")
+  "Tv" '(my/term-vsplit :which-key "terminal in vertical split")
+  "Ts" '(my/term-split :which-key "terminal in horizontal split")
+  "Tr" '(my/vterm-rename :which-key "rename terminal (empty = automatic)")
+
   ">" '(enlarge-window-horizontally :which-key "wider")
   "<" '(shrink-window-horizontally :which-key "narrower")
   "," '(:ignore t :which-key "height")

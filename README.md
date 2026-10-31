@@ -9,7 +9,7 @@ $ brew install emacs
 $ emacs -nw
 ```
 
-The first start installs the packages. After that, run `M-x copilot-login` once.
+The first start installs the packages and compiles the vterm module, which needs `brew install cmake libtool`. After that, run `M-x copilot-login` once.
 
 ## Packages
 
@@ -26,6 +26,7 @@ The first start installs the packages. After that, run `M-x copilot-login` once.
 | lualine | doom-modeline |
 | material.nvim | doom-themes (`doom-material-dark`) |
 | which-key | which-key |
+| `:terminal` | vterm |
 
 ## Keys that differ from nvim
 

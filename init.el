@@ -29,6 +29,7 @@
 (require 'init-git)
 (require 'init-clojure)
 (require 'init-elixir)
+(require 'init-term)
 (require 'init-keys)
 (require 'init-copilot)
 
