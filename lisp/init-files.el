@@ -2,17 +2,39 @@
 
 (use-package treemacs
   :config
+  ;; No saved state: nothing visits the persist file, so `:qa' never asks about it, and sessions don't share it.
+  (advice-add 'treemacs--persist :override #'ignore)
+  (advice-add 'treemacs--restore :override #'ignore)
+  ;; An empty workspace would ask for a project root; take the project of the window treemacs opened from.
+  (advice-add 'treemacs--read-first-project-path :override #'my/treemacs-first-project)
   (setq treemacs-position 'right
         treemacs-width 40
-        treemacs-show-hidden-files nil)
+        treemacs-show-hidden-files nil
+        ;; The first project is expanded when it's added; this would toggle it closed again.
+        treemacs-expand-after-init nil)
   (treemacs-follow-mode 1)
   ;; Always show the current project, as neo-tree shows the current directory.
   (treemacs-project-follow-mode 1)
   (treemacs-filewatch-mode 1)
   (treemacs-git-mode 'simple))
 
+(defun my/treemacs-first-project ()
+  (with-current-buffer (window-buffer (get-mru-window nil nil t))
+    (file-truename (or (treemacs--find-current-user-project) default-directory))))
+
+(defun my/treemacs-open-in-tab ()
+  "Open the file at point in a new tab."
+  (interactive)
+  (let ((path (when-let* ((btn (treemacs-current-button))) (treemacs-button-get btn :path))))
+    (unless (and (stringp path) (file-regular-p path))
+      (user-error "Not a file"))
+    (find-file-other-tab path)))
+
 (use-package treemacs-evil
-  :after (treemacs evil))
+  :after (treemacs evil)
+  :config
+  ;; As in nvim's tree. This replaces treemacs-evil's `t' prefix of toggles (th, tf, ...).
+  (define-key evil-treemacs-state-map (kbd "t") #'my/treemacs-open-in-tab))
 
 (use-package treemacs-nerd-icons
   :after treemacs
