@@ -1,4 +1,4 @@
-;;; init-clojure.el --- Clojure: CIDER (Conjure), lispyville (vim-sexp), parinfer -*- lexical-binding: t; -*-
+;;; init-clojure.el --- Clojure: CIDER (Conjure), parinfer -*- lexical-binding: t; -*-
 
 (use-package clojure-mode)
 
@@ -9,28 +9,42 @@
         cider-show-error-buffer 'only-in-repl
         cider-auto-select-error-buffer nil))
 
-;; lispy needs these, but its MELPA recipe does not list them.
-(use-package iedit)
-(use-package zoutline)
-
-(use-package lispyville
-  :hook (clojure-mode . lispyville-mode)
-  :config
-  (lispyville-set-key-theme
-   '(operators c-w slurp/barf-cp additional additional-movement additional-wrap text-objects)))
-
 (use-package parinfer-rust-mode
+  :hook (clojure-mode emacs-lisp-mode)
   :init
   (setq parinfer-rust-auto-download t))
 
-;; The keys follow the Conjure defaults and plugins/sexp.lua.
+;; `(' and `)' jump to the enclosing bracket, as in vim-sexp. They also leave a string first.
+;; At the top level there is no bracket to go to, so they stay in place.
+(evil-define-motion init-clojure-backward-up-list (count)
+  "Move to the opening bracket COUNT levels up."
+  (let ((start (point)))
+    (goto-char (save-excursion
+                 (goto-char (or (nth 8 (syntax-ppss)) (point)))
+                 (condition-case nil
+                     (progn (backward-up-list (or count 1)) (point))
+                   (scan-error start))))))
+
+(evil-define-motion init-clojure-up-list (count)
+  "Move to the closing bracket COUNT levels up."
+  (let ((start (point)))
+    (goto-char (save-excursion
+                 (goto-char (or (nth 8 (syntax-ppss)) (point)))
+                 ;; On `(' this enters the list, so `)' finds its partner.
+                 ;; On `)' this leaves the list, so a repeat goes one level out.
+                 (when (memq (char-syntax (or (char-after) ?\s)) '(?\( ?\)))
+                   (forward-char))
+                 (condition-case nil
+                     (progn (up-list (or count 1)) (1- (point)))
+                   (scan-error start))))))
+
 (with-eval-after-load 'general
-  ;; vim-sexp swaps elements with M-h/M-l. lispyville's own theme uses them for defun motions.
   (general-define-key
-   :states '(normal visual)
-   :keymaps 'lispyville-mode-map
-   "M-h" #'lispyville-drag-backward
-   "M-l" #'lispyville-drag-forward)
+   :states 'motion
+   :keymaps '(clojure-mode-map emacs-lisp-mode-map)
+   "(" #'init-clojure-backward-up-list
+   ")" #'init-clojure-up-list)
+  ;; The keys follow the Conjure defaults.
   (general-define-key
    :states 'visual
    :keymaps 'clojure-mode-map
@@ -64,14 +78,7 @@
    "ta" '(cider-test-run-project-tests :which-key "run all tests")
    "tn" '(cider-test-run-ns-tests :which-key "run ns tests")
    "tc" '(cider-test-run-test :which-key "run test at point")
-   "rr" '(cider-ns-refresh :which-key "refresh changed")
-   "w(" '(lispyville-wrap-round :which-key "wrap ( )")
-   "w[" '(lispyville-wrap-brackets :which-key "wrap [ ]")
-   "w{" '(lispyville-wrap-braces :which-key "wrap { }")
-   "ws" '(lispy-splice :which-key "splice list")
-   "wv" '(lispy-convolute :which-key "convolute")
-   "wc" '(lispy-clone :which-key "clone")
-   "wr" '(lispy-raise :which-key "raise")))
+   "rr" '(cider-ns-refresh :which-key "refresh changed")))
 
 (provide 'init-clojure)
 ;;; init-clojure.el ends here

@@ -16,7 +16,6 @@ The first start installs the packages. After that, run `M-x copilot-login` once.
 | nvim | Emacs |
 |---|---|
 | conjure | CIDER |
-| vim-sexp | lispyville |
 | parinfer-rust | parinfer-rust-mode |
 | nvim-lspconfig | eglot |
 | conform | apheleia |
@@ -37,13 +36,12 @@ The first start installs the packages. After that, run `M-x copilot-login` once.
 | `<leader>,>>`, `<leader>,<<` | `,,>`, `,,<` |
 | `case`, `css`, `csk`, `csc`, `csp`, `csm` | `,kr`, `,ks`, `,kk`, `,kc`, `,kp`, `,km` |
 | `<leader>repl` | `,repl` asks for the port |
-| `<leader>w…` | `,w(`, `,w[`, `,w{`, `,ws`, `,wv`, `,wc`, `,wr` |
 
 ## Not available
 
 No package gives these, so the config leaves them out:
 - The Portal and Clojure helpers (`,cv`, `,cp`, `,ct`, `,cT`, `,cu`, `,cg`, `,cj`, `,cw`, `,cef`, `,cro`, `,crt`, `,crn`, `,crr`).
-- The other vim-sexp keys: tail wraps, element wraps, insert, put, replace and align comments.
+- The vim-sexp keys, except `(` and `)`. parinfer-rust-mode does the paren editing.
 - The empty UUID, hash and timestamp inserts, and `,rt` (retab).
 - Completion of library versions in `deps.edn` (cmp-clojure-deps).
 - The elixir-ls test lenses. Use `,mt` to run the test at the cursor.

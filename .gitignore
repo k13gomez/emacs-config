@@ -3,6 +3,7 @@ eln-cache/
 auto-save-list/
 transient/
 tree-sitter/
+parinfer-rust/
 undo-fu-session/
 .cache/
 custom.el

@@ -7,5 +7,7 @@
               ("TAB" . copilot-accept-completion)
               ("<tab>" . copilot-accept-completion)))
 
+(setq copilot-indent-offset-warning-disable t)
+
 (provide 'init-copilot)
 ;;; init-copilot.el ends here
