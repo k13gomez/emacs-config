@@ -13,10 +13,13 @@
                    (read (current-buffer))))))
     (if (memq theme my/tokyo-night-variants) theme 'tokyo-night)))
 
+;; Declared special so the let below binds it dynamically, compiled or not.
+(defvar consult-themes)
+
 (defun my/tokyo-night-pick ()
   "Pick a Tokyo Night variant with live preview and remember it across restarts."
   (interactive)
-  ;; Loading consult first makes `consult-themes' special, so the let binds it dynamically.
+  ;; Load consult outside the let, or its defcustom would see only the let binding.
   (require 'consult)
   (let ((consult-themes my/tokyo-night-variants))
     (call-interactively #'consult-theme))
@@ -25,7 +28,56 @@
       (with-temp-file my/tokyo-night-file
         (prin1 theme (current-buffer))))))
 
+;; The mode colours of lualine's tokyonight theme. Any other state, including nil in the
+;; minibuffer, gets yellow, lualine's command-mode colour.
+(defconst my/tokyo-night-state-colors
+  '((normal . "tokyo-blue") (motion . "tokyo-blue") (operator . "tokyo-blue")
+    (insert . "tokyo-green") (visual . "tokyo-magenta") (replace . "tokyo-red")
+    (emacs . "tokyo-teal")))
+
+(defun my/tokyo-night-state-color (state theme)
+  (tokyo-night-get-color (alist-get state my/tokyo-night-state-colors "tokyo-yellow") theme))
+
+(defvar my/tokyo-night-tab-state 'unset)
+
+(defun my/tokyo-night-sync-tab ()
+  "Fill the active tab with the evil state colour of the selected window, as lualine does."
+  (let ((state (bound-and-true-p evil-state))
+        (theme (car custom-enabled-themes)))
+    (when (and (not (eq state my/tokyo-night-tab-state))
+               (memq theme my/tokyo-night-variants))
+      (setq my/tokyo-night-tab-state state)
+      (set-face-attribute 'tab-bar-tab nil :background (my/tokyo-night-state-color state theme)))))
+
+;; enable-theme rebuilds faces from the theme spec, so this reapplies on every switch,
+;; including consult's live preview.
+(defun my/tokyo-night-ui-faces (theme)
+  "Draw the evil state and the tab bar as the solid blocks of lualine's tokyonight theme."
+  (when (memq theme my/tokyo-night-variants)
+    (let ((bg-dark (tokyo-night-get-color "tokyo-bg-dark" theme)))
+      ;; tokyo-night makes this face inherit mode-line. It comes first in every segment's
+      ;; inherit list, so the mode-line background would hide the state colour.
+      (set-face-attribute 'doom-modeline nil :inherit 'unspecified)
+      (dolist (state '(normal motion operator insert visual replace emacs user))
+        (set-face-attribute (intern (format "doom-modeline-evil-%s-state" state)) nil
+                            :background (my/tokyo-night-state-color state theme)
+                            :foreground bg-dark :weight 'bold))
+      (set-face-attribute 'doom-modeline-overwrite nil
+                          :background (my/tokyo-night-state-color 'replace theme)
+                          :foreground bg-dark :weight 'bold)
+      (set-face-attribute 'tab-bar nil
+                          :background bg-dark
+                          :foreground (tokyo-night-get-color "tokyo-fg-dark" theme))
+      (set-face-attribute 'tab-bar-tab nil :foreground bg-dark :weight 'bold :box nil)
+      (set-face-attribute 'tab-bar-tab-inactive nil
+                          :background bg-dark
+                          :foreground (tokyo-night-get-color "tokyo-blue" theme))
+      (setq my/tokyo-night-tab-state 'unset)
+      (my/tokyo-night-sync-tab))))
+
 (use-package tokyo-night
+  :init
+  (setq tokyo-night-flat-mode-line t)
   :config
   (load-theme (my/tokyo-night-saved) t))
 
@@ -35,7 +87,19 @@
   :init
   (setq doom-modeline-buffer-file-name-style 'truename
         doom-modeline-buffer-encoding t
-        doom-modeline-modal t)
+        doom-modeline-modal t
+        ;; Show evil's tag text instead of an icon; the tags below are lualine's mode names.
+        doom-modeline-modal-icon nil
+        evil-normal-state-tag " NORMAL "
+        evil-insert-state-tag " INSERT "
+        evil-visual-char-tag " VISUAL "
+        evil-visual-line-tag " V-LINE "
+        evil-visual-screen-line-tag " V-LINE "
+        evil-visual-block-tag " V-BLOCK "
+        evil-operator-state-tag " O-PENDING "
+        evil-replace-state-tag " REPLACE "
+        evil-motion-state-tag " MOTION "
+        evil-emacs-state-tag " EMACS ")
   :config
   (doom-modeline-mode 1))
 
@@ -48,6 +112,11 @@
         tab-bar-close-button-show nil
         tab-bar-new-button-show nil)
   (tab-bar-mode 1))
+
+;; Runs here because the restyle needs the doom-modeline and tab-bar faces defined.
+(add-hook 'enable-theme-functions #'my/tokyo-night-ui-faces)
+(my/tokyo-night-ui-faces (car custom-enabled-themes))
+(add-hook 'post-command-hook #'my/tokyo-night-sync-tab)
 
 (use-package rainbow-delimiters
   :hook (prog-mode . rainbow-delimiters-mode))
