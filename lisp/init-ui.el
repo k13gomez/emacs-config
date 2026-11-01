@@ -1,8 +1,33 @@
 ;;; init-ui.el --- Theme, modeline, tab bar and start screen -*- lexical-binding: t; -*-
 
-(use-package doom-themes
+(defconst my/tokyo-night-variants
+  '(tokyo-night tokyo-night-storm tokyo-night-moon tokyo-night-day))
+
+;; *.eld is already gitignored, so the saved choice stays out of the repo.
+(defvar my/tokyo-night-file (expand-file-name "tokyo-night.eld" user-emacs-directory))
+
+(defun my/tokyo-night-saved ()
+  (let ((theme (ignore-errors
+                 (with-temp-buffer
+                   (insert-file-contents my/tokyo-night-file)
+                   (read (current-buffer))))))
+    (if (memq theme my/tokyo-night-variants) theme 'tokyo-night)))
+
+(defun my/tokyo-night-pick ()
+  "Pick a Tokyo Night variant with live preview and remember it across restarts."
+  (interactive)
+  ;; Loading consult first makes `consult-themes' special, so the let binds it dynamically.
+  (require 'consult)
+  (let ((consult-themes my/tokyo-night-variants))
+    (call-interactively #'consult-theme))
+  (let ((theme (car custom-enabled-themes)))
+    (when (memq theme my/tokyo-night-variants)
+      (with-temp-file my/tokyo-night-file
+        (prin1 theme (current-buffer))))))
+
+(use-package tokyo-night
   :config
-  (load-theme 'doom-material-dark t))
+  (load-theme (my/tokyo-night-saved) t))
 
 (use-package nerd-icons)
 

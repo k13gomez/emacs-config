@@ -24,7 +24,7 @@ The first start installs the packages and compiles the vterm module, which needs
 | neo-tree | treemacs |
 | gitsigns, fugitive | diff-hl, magit |
 | lualine | doom-modeline |
-| material.nvim | doom-themes (`doom-material-dark`) |
+| tokyonight.nvim | tokyo-night (night by default; `,fs` switches the style and remembers it) |
 | which-key | which-key |
 | `:terminal` | vterm |
 

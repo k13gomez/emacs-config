@@ -31,7 +31,7 @@
   "fg" '(consult-ripgrep :which-key "grep")
   "fb" '(consult-buffer :which-key "buffers")
   "fh" '(describe-symbol :which-key "help")
-  "fs" '(consult-theme :which-key "switch theme")
+  "fs" '(my/tokyo-night-pick :which-key "switch tokyo-night style")
 
   "t" '(:ignore t :which-key "tabs / toggles")
   "tt" '(treemacs :which-key "toggle file tree")
