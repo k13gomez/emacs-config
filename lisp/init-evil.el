@@ -20,7 +20,23 @@
   (evil-define-operator my/evil-comment (beg end)
     "Comment or uncomment the lines from BEG to END."
     (comment-or-uncomment-region beg end))
-  (evil-define-key '(normal visual) 'global "gc" #'my/evil-comment))
+  (evil-define-key '(normal visual) 'global "gc" #'my/evil-comment)
+  ;; Remapped rather than bound to DEL, so modes with their own Backspace (vterm) keep it.
+  (define-key evil-insert-state-map [remap delete-backward-char] #'my/evil-delete-backward-softtab)
+  (define-key evil-insert-state-map [remap backward-delete-char-untabify] #'my/evil-delete-backward-softtab))
+
+(defun my/evil-delete-backward-softtab ()
+  "Delete spaces back to the previous indent stop, as nvim's 'softtabstop'.
+The stop is `evil-shift-width', which the mode hooks set per language."
+  (interactive)
+  (let* ((col (current-column))
+         (spaces (- col (save-excursion
+                          (skip-chars-backward " " (line-beginning-position))
+                          (current-column))))
+         (n (min spaces (- col (* (/ (max 0 (1- col)) evil-shift-width) evil-shift-width)))))
+    (if (and (> n 1) (not (use-region-p)))
+        (delete-char (- n))
+      (call-interactively #'evil-delete-backward-char-and-join))))
 
 (use-package evil-collection
   :after evil

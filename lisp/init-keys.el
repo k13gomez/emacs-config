@@ -107,7 +107,8 @@ string-inflection's own cycle uses a different order."
   "h" '(dashboard-open :which-key "start screen")
 
   "n" '(:ignore t :which-key "new")
-  "nt" '(tab-new :which-key "new tab")
+  "ne" '(tab-new :which-key "empty buffer in new tab")
+  "nt" '(my/term-tab :which-key "terminal in new tab")
 
   "b" '(:ignore t :which-key "buffer")
   "bw" '(save-buffer :which-key "write buffer")

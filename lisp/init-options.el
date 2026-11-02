@@ -12,22 +12,25 @@
 
 ;; The nvim 'list' option: show tabs and trailing spaces.
 (setq whitespace-style '(face tabs trailing))
-(add-hook 'prog-mode-hook #'whitespace-mode)
+(dolist (hook '(prog-mode-hook text-mode-hook conf-mode-hook))
+  (add-hook hook #'whitespace-mode))
 
 (setq scroll-margin 4
       scroll-conservatively 101)
 
 (setq select-enable-clipboard t)
 
-(let ((backups (expand-file-name "~/.cache/emacs-backupfiles/"))
-      (autosaves (expand-file-name "~/.cache/emacs-swapfiles/")))
-  (make-directory backups t)
+;; As nvim: no backup copies, and a warning when the file is already open in another Emacs
+;; (nvim's swap file). Lock files go to the cache, not next to the file.
+(let ((autosaves (expand-file-name "~/.cache/emacs-swapfiles/"))
+      (locks (expand-file-name "~/.cache/emacs-lockfiles/")))
   (make-directory autosaves t)
-  (setq backup-directory-alist `(("." . ,backups))
-        auto-save-file-name-transforms `((".*" ,autosaves t))))
+  (make-directory locks t)
+  (setq make-backup-files nil
+        auto-save-file-name-transforms `((".*" ,autosaves t))
+        lock-file-name-transforms `((".*" ,locks t))))
 
-(setq create-lockfiles nil
-      ring-bell-function #'ignore
+(setq ring-bell-function #'ignore
       use-short-answers t)
 
 ;; A subdirectory with one of these files is its own project, so the LSP server gets the right root.
