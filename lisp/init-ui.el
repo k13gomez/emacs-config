@@ -126,7 +126,8 @@
   (setq dashboard-items '((recents . 10) (projects . 5))
         dashboard-projects-backend 'project-el
         dashboard-icon-type 'nerd-icons
-        dashboard-set-file-icons t)
+        dashboard-set-file-icons t
+        dashboard-startup-banner (expand-file-name "banner.txt" user-emacs-directory))
   (dashboard-setup-startup-hook))
 
 (provide 'init-ui)
