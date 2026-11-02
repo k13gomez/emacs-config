@@ -11,13 +11,13 @@ This configuration is kept in sync with [k13gomez/nvim-config](https://github.co
 The theme is tokyo-night (night style by default) with doom-modeline. Press `,fs` to switch the style; the choice is kept across restarts.
 Elixir and HEEx files format on save through `mix format`. Terraform files format on save through `terraform fmt`.
 Vim keys come from evil, and the config is built for Emacs in a terminal (`emacs -nw`).
-The dashboard shows `emacsium.png` in a GUI frame, and as a sixel image inside tmux with sixel support. Other terminals show the text banner.
+The dashboard shows `emacsium.png` in a GUI frame. In a terminal, it shows a sixel image inside tmux, if the terminal supports sixel. Other terminals show the text banner.
 
 ## Install dependencies
 
 ```bash
 $ brew install ripgrep stylua clojure-lsp/brew/clojure-lsp-native elixir-ls lua-language-server
-$ brew install emacs cmake libtool imagemagick
+$ brew install emacs cmake libtool
 ```
 
 Terraform formatting needs `terraform` on the `PATH`, and Copilot needs Node. The icons need a Nerd Font in the terminal.
@@ -337,6 +337,8 @@ Programming buffers fold by code block (hideshow). Folds start open.
 ## Start screen (dashboard)
 
 The start screen lists recent files and projects, and shows how long startup took. `,h` opens it again.
+
+The terminal image comes from `sixels/<theme>.sixel`, for example `sixels/tokyo-night-storm.sixel`. A theme without a file gets one rendered with ImageMagick on the first start, and later starts use it again. After a change to `emacsium.png`, delete the files in `sixels/` to render them again. A file is also rendered again when the terminal's cell size changes.
 
 | Key | Action |
 |---|---|

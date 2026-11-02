@@ -147,12 +147,19 @@ then the tab, then Emacs."
      ((> (length (tab-bar-tabs)) 1) (tab-close))
      (t (save-buffers-kill-terminal)))))
 
-;; The dashboard shows emacsium.png as a sixel image in the terminal. The image size comes from the cell size in pixels.
-;; Only tmux reports it, so the image needs tmux with sixel support. Other terminals get banner.txt.
+;; The dashboard shows a sixel image in the terminal. sixels/ keeps one file for each theme.
+;; A theme without a file gets one rendered with ImageMagick, and later starts use it again.
+;; The layout needs the cell size in pixels. Only tmux reports it, so the image needs tmux and a terminal with sixel.
+;; Other terminals get banner.txt.
 (defconst my/banner-png (expand-file-name "emacsium.png" user-emacs-directory))
-(defconst my/banner-rows 10)
+;; The image size in pixels. Each file is padded around it to fill whole cells.
+(defconst my/banner-width 930)
+(defconst my/banner-height 310)
+(defvar my/banner-rows nil)
+(defvar my/banner-cell-width nil)
+(defvar my/banner-cell-height nil)
 (defvar my/banner-enabled 'unknown)
-(defvar my/banner-cache nil "Alist of (WIDTH HEIGHT BACKGROUND) to sixel data.")
+(defvar my/banner-cache nil "Alist of theme name to sixel data.")
 (defvar my/banner-start nil "Marker at the first blank line of the image banner.")
 (defvar my/banner-shown nil)
 (defvar my/banner-timer nil)
@@ -168,18 +175,31 @@ init-options.el clears $TMUX for child processes, so this gives back the origina
         (string-trim (buffer-string))))))
 
 (defun my/banner-enabled-p ()
+  "Non-nil if the terminal can show the image.
+sixel_support is true when tmux is built with sixel. client_termfeatures lists sixel only if the terminal has it."
   (when (eq my/banner-enabled 'unknown)
-    (setq my/banner-enabled
-          (and (not (display-graphic-p))
-               (equal (getenv "TERM_PROGRAM") "tmux")
-               (executable-find "magick")
-               (equal (my/banner-tmux "#{sixel_support}") "1"))))
+    (setq my/banner-enabled nil)
+    (when-let* (((not (display-graphic-p)))
+                ((equal (getenv "TERM_PROGRAM") "tmux"))
+                (info (split-string
+                       (or (my/banner-tmux
+                            "#{sixel_support} #{client_termfeatures} #{client_cell_width} #{client_cell_height}")
+                           "")))
+                ((= (length info) 4))
+                ((equal (nth 0 info) "1"))
+                ((member "sixel" (split-string (nth 1 info) ","))))
+      (setq my/banner-cell-width (string-to-number (nth 2 info))
+            my/banner-cell-height (string-to-number (nth 3 info))
+            my/banner-rows (ceiling my/banner-height my/banner-cell-height)
+            my/banner-enabled (not (string-empty-p (my/banner-sixel))))))
   my/banner-enabled)
 
 (defun my/dashboard-insert-banner ()
   "Insert blank lines for the sixel image, or else the normal banner."
   (if (not (my/banner-enabled-p))
-      (dashboard-insert-banner)
+      ;; Dashboard's (image . text) banner fails in a terminal. It swaps in its own PNG and then cannot show it.
+      (let ((dashboard-startup-banner (if (display-graphic-p) my/banner-png dashboard-startup-banner)))
+        (dashboard-insert-banner))
     (goto-char (point-max))
     (insert "\n")
     (setq my/banner-start (point-marker))
@@ -208,29 +228,54 @@ redisplay that makes `cursor-intangible-mode' signal an error in Emacs 31."
   (let ((cursor-sensor-inhibit t))
     (apply initialize args)))
 
-(defun my/banner-sixel (width height)
-  "Return sixel data for the PNG at WIDTH x HEIGHT pixels.
-The PNG is flattened onto the theme background, so a style switch with ,fs still matches."
-  (let* ((bg (apply #'format "#%02x%02x%02x"
-                    (mapcar (lambda (c) (/ c 256)) (color-values (face-background 'default nil t)))))
-         (key (list width height bg)))
-    (or (alist-get key my/banner-cache nil nil #'equal)
-        (setf (alist-get key my/banner-cache nil nil #'equal)
-              (with-temp-buffer
-                (set-buffer-multibyte nil)
-                (let ((coding-system-for-read 'binary))
-                  (call-process "magick" nil t nil my/banner-png "-background" bg "-flatten"
-                                "-resize" (format "%dx%d" width height) "sixel:-"))
-                (buffer-string))))))
+(defun my/banner-read (file)
+  "Return the bytes of FILE, or nil if it cannot be read."
+  (when (file-readable-p file)
+    (with-temp-buffer
+      (set-buffer-multibyte nil)
+      (insert-file-contents-literally file)
+      (buffer-string))))
+
+(defun my/banner-render (file width height)
+  "Render the PNG as sixel into FILE, WIDTH x HEIGHT pixels, and return its bytes.
+tmux clears the image's cells to the terminal's default background, which is black.
+The theme background fills the cells around the image, or a black band shows."
+  (when-let* ((bg (face-background 'default nil t))
+              ((color-defined-p bg))
+              ((executable-find "magick")))
+    (make-directory (file-name-directory file) t)
+    (when (eql 0 (call-process "magick" nil nil nil my/banner-png
+                               "-background" (apply #'format "#%02x%02x%02x"
+                                                    (mapcar (lambda (c) (/ c 256)) (color-values bg)))
+                               "-flatten" "-resize" (format "%dx%d" my/banner-width my/banner-height)
+                               "-gravity" "center" "-extent" (format "%dx%d" width height)
+                               (concat "sixel:" file)))
+      (my/banner-read file))))
+
+(defun my/banner-sixel ()
+  "Return the sixel data for the active theme, or an empty string.
+A file of a different size, for example after a font change, is rendered again."
+  (let ((theme (car custom-enabled-themes)))
+    (cond ((not (and theme my/banner-cell-width)) "")
+          ((alist-get theme my/banner-cache))
+          (t (let* ((width (* (ceiling my/banner-width my/banner-cell-width) my/banner-cell-width))
+                    (height (* my/banner-rows my/banner-cell-height))
+                    (file (expand-file-name (format "sixels/%s.sixel" theme) user-emacs-directory))
+                    (data (my/banner-read file)))
+               (unless (and data
+                            (string-match "\\`\eP[^q]*q\"1;1;\\([0-9]+\\);\\([0-9]+\\)" data)
+                            (= (string-to-number (match-string 1 data)) width)
+                            (= (string-to-number (match-string 2 data)) height))
+                 (setq data (my/banner-render file width height)))
+               (setf (alist-get theme my/banner-cache) (or data "")))))))
 
 (defun my/banner-draw ()
   "Draw the image over the blank banner lines, centered in the dashboard window."
   (when-let* ((win (get-buffer-window dashboard-buffer-name))
               ((eq (marker-buffer my/banner-start) (window-buffer win)))
-              (cell (split-string (or (my/banner-tmux "#{client_cell_width} #{client_cell_height}") "")))
-              ((= (length cell) 2))
-              (height (* my/banner-rows (string-to-number (cadr cell))))
-              (cols (ceiling (* 3 height) (string-to-number (car cell))))
+              (data (my/banner-sixel))
+              ((not (string-empty-p data)))
+              (cols (ceiling my/banner-width my/banner-cell-width))
               (posn (progn (redisplay t) (posn-at-point my/banner-start win)))
               (edges (window-inside-edges win)))
     ;; Terminal rows and columns count from 1, Emacs ones from 0.
@@ -239,7 +284,7 @@ The PNG is flattened onto the theme background, so a style switch with ,fs still
              (format "\e[%d;%dH"
                      (+ (nth 1 edges) (cdr (posn-col-row posn)) 1)
                      (+ (nth 0 edges) (max 0 (/ (- (window-body-width win) cols) 2)) 1))
-             (my/banner-sixel (* 3 height) height)
+             data
              "\e8"))
     (setq my/banner-shown t)))
 
@@ -261,8 +306,7 @@ The PNG is flattened onto the theme background, so a style switch with ,fs still
         dashboard-projects-backend 'project-el
         dashboard-icon-type 'nerd-icons
         dashboard-set-file-icons t
-        ;; A GUI frame shows the PNG itself. In a terminal, `my/dashboard-insert-banner' decides.
-        dashboard-startup-banner (cons my/banner-png (expand-file-name "banner.txt" user-emacs-directory))
+        dashboard-startup-banner (expand-file-name "banner.txt" user-emacs-directory)
         dashboard-navigator-buttons
         `(((nil "Empty buffer" "" ,(lambda (&rest _) (my/dashboard-new-buffer)) nil "(e) " "   ")
            (nil "Quit" "" ,(lambda (&rest _) (my/dashboard-quit)) nil "(q) " "")))
@@ -289,6 +333,8 @@ The PNG is flattened onto the theme background, so a style switch with ,fs still
   (add-hook 'dashboard-after-initialize-hook #'my/dashboard-skip-banner)
   (advice-add 'dashboard-initialize :around #'my/dashboard-initialize-tangible)
   (add-hook 'window-buffer-change-functions #'my/banner-update)
+  ;; A style switch with ,fs needs the file for the new style.
+  (add-hook 'enable-theme-functions #'my/banner-update)
   (add-hook 'window-size-change-functions #'my/banner-update)
   (dashboard-setup-startup-hook))
 
