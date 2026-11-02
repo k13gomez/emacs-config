@@ -118,6 +118,12 @@ string-inflection's own cycle uses a different order."
   "bx" '(evil-save-and-quit :which-key "write all and quit")
   "bX" '(kill-emacs :which-key "quit all, discard")
 
+  "q" '(:ignore t :which-key "quit")
+  "qq" '(evil-quit :which-key "quit")
+  "qa" '(evil-quit-all :which-key "quit all")
+  "qw" '(evil-save-and-close :which-key "write and quit")
+  "qs" '(evil-save-and-quit :which-key "write all and quit all")
+
   "u" '(:ignore t :which-key "insert / utilities")
   "uh" '(my/insert-hash :which-key "insert random hex hash")
   "uu" '(uuidgen :which-key "insert UUID")
