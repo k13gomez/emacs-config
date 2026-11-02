@@ -11,8 +11,87 @@
         evil-lion-right-align-key (kbd "gA"))
   (evil-lion-mode 1))
 
+;; nvim's ,>> ,>>> ,>>>> resize by 5, 10 and 20. Emacs can't bind a key and a longer key starting
+;; with it, so ,>> waits up to nvim's 'timeoutlen' (1s) for more presses of the same key, as Vim does.
+(defun my/resize-command (key sign horizontal)
+  (lambda ()
+    (interactive)
+    (let ((extra 0) event)
+      (while (and (< extra 2)
+                  (setq event (read-event nil nil 1.0))
+                  (eq event key))
+        (setq extra (1+ extra)))
+      (when (and event (not (eq event key)))
+        (push event unread-command-events))
+      (enlarge-window (* sign (nth extra '(5 10 20))) horizontal))))
+
+(defun my/insert-hash ()
+  "Insert 32 random hex characters."
+  (interactive)
+  (insert (mapconcat (lambda (_) (format "%x" (random 16))) (make-list 32 nil) "")))
+
+(defun my/insert-empty-uuid ()
+  (interactive)
+  (insert "00000000-0000-0000-0000-000000000000"))
+
+(defun my/insert-timestamp ()
+  "Insert the ISO 8601 time with milliseconds and offset, as nvim's ,uts."
+  (interactive)
+  (insert (format-time-string "%FT%T.%3N%z")))
+
+(defun my/retab ()
+  "Turn the buffer's tabs into spaces, as :retab does with 'expandtab'."
+  (interactive)
+  (untabify (point-min) (point-max)))
+
+(defun my/git-blame-line ()
+  "Show who last changed the current line, as gitsigns' blame_line."
+  (interactive)
+  (unless buffer-file-name (user-error "Not a file"))
+  (let* ((line (line-number-at-pos))
+         (file (file-local-name buffer-file-name))
+         (out (with-temp-buffer
+                (unless (zerop (call-process "git" nil t nil "blame" "--porcelain"
+                                             "-L" (format "%d,%d" line line) "--" file))
+                  (user-error "git blame: %s" (string-trim (buffer-string))))
+                (buffer-string)))
+         (field (lambda (key)
+                  (and (string-match (format "^%s \\(.*\\)$" key) out) (match-string 1 out)))))
+    (message "%s %s, %s: %s"
+             (substring out 0 8)
+             (funcall field "author")
+             (format-time-string "%F" (string-to-number (funcall field "author-time")))
+             (funcall field "summary"))))
+
+;; `cs' + s/k/c/p/m converts case, as vim-case-master in nvim. `s' is bound in operator state so
+;; plain `c' still works; the conversion runs instead of the pending change (the evil-surround trick).
+(defconst my/case-commands
+  '((?s . string-inflection-underscore)
+    (?k . string-inflection-kebab-case)
+    (?c . string-inflection-lower-camelcase)
+    (?p . string-inflection-camelcase)
+    (?m . string-inflection-upcase)))
+
+(evil-define-command my/evil-case-convert ()
+  (setq evil-inhibit-operator t)
+  (when (eq evil-this-operator #'evil-change)
+    (when-let* ((cmd (alist-get (read-char "Case: [s]nake [k]ebab [c]amel [p]ascal [m]acro")
+                                my/case-commands)))
+      (funcall cmd))))
+(define-key evil-operator-state-map "s" #'my/evil-case-convert)
+
+(defun my/clear-highlight ()
+  "Clear search highlight and redraw, as nvim's default C-l."
+  (interactive)
+  (evil-ex-nohighlight)
+  (redraw-display))
+(evil-define-key 'normal 'global (kbd "C-l") #'my/clear-highlight)
+
 (my/leader
   "h" '(dashboard-open :which-key "start screen")
+
+  "n" '(:ignore t :which-key "new")
+  "nt" '(tab-new :which-key "new tab")
 
   "b" '(:ignore t :which-key "buffer")
   "bw" '(save-buffer :which-key "write buffer")
@@ -23,7 +102,10 @@
   "bX" '(kill-emacs :which-key "quit all, discard")
 
   "u" '(:ignore t :which-key "insert / utilities")
+  "uh" '(my/insert-hash :which-key "insert random hex hash")
   "uu" '(uuidgen :which-key "insert UUID")
+  "ue" '(my/insert-empty-uuid :which-key "insert empty UUID")
+  "uts" '(my/insert-timestamp :which-key "insert ISO timestamp")
   "uf" '(:ignore t :which-key "pretty-print")
   "ufx" '(xml-format-buffer :which-key "pretty-print XML")
   "ufj" '(json-pretty-print-buffer :which-key "pretty-print JSON")
@@ -38,8 +120,7 @@
   "t" '(:ignore t :which-key "tabs / toggles")
   "tt" '(treemacs :which-key "toggle file tree")
   "tl" '(display-line-numbers-mode :which-key "toggle line numbers")
-  "ti" '(parinfer-rust-mode :which-key "toggle parinfer")
-  "to" '(tab-new :which-key "new tab")
+  "ti" '(my/parinfer-toggle :which-key "toggle parinfer")
   "`" '(tab-recent :which-key "last tab")
   "0" '(tab-last :which-key "last tab")
   "1" '(tab-bar-select-tab :which-key "tab 1")
@@ -58,11 +139,15 @@
   "Ts" '(my/term-split :which-key "terminal in horizontal split")
   "Tr" '(my/vterm-rename :which-key "rename terminal (empty = automatic)")
 
-  ">" '(enlarge-window-horizontally :which-key "wider")
-  "<" '(shrink-window-horizontally :which-key "narrower")
-  "," '(:ignore t :which-key "height")
-  ",>" '(enlarge-window :which-key "taller")
-  ",<" '(shrink-window :which-key "shorter")
+  ">" '(:ignore t :which-key "resize wider")
+  ">>" `(,(my/resize-command ?> 1 t) :which-key "wider +5 (>>> +10, >>>> +20)")
+  "<" '(:ignore t :which-key "resize narrower")
+  "<<" `(,(my/resize-command ?< -1 t) :which-key "narrower -5 (<<< -10, <<<< -20)")
+  "," '(:ignore t :which-key "horiz resize")
+  ",>>" `(,(my/resize-command ?> 1 nil) :which-key "taller +5 (>>> +10, >>>> +20)")
+  ",<<" `(,(my/resize-command ?< -1 nil) :which-key "shorter -5 (<<< -10, <<<< -20)")
+
+  "rt" '(my/retab :which-key "retab")
 
   "k" '(:ignore t :which-key "case")
   "kr" '(string-inflection-all-cycle :which-key "rotate case")
@@ -81,18 +166,17 @@
   "pc" '(package-autoremove :which-key "delete unused packages")
 
   "G" '(:ignore t :which-key "git")
-  "Gt" '(diff-hl-mode :which-key "toggle git signs")
+  "Gt" '(global-diff-hl-mode :which-key "toggle git signs")
   "Gp" '(diff-hl-show-hunk :which-key "preview hunk")
   "Gs" '(diff-hl-stage-current-hunk :which-key "stage hunk")
   "Gr" '(diff-hl-revert-hunk :which-key "reset hunk")
-  "Gb" '(magit-blame-addition :which-key "blame")
+  "Gb" '(my/git-blame-line :which-key "blame line")
 
   "c" '(:ignore t :which-key "clojure / elixir")
   "e" '(:ignore t :which-key "eval")
   "l" '(:ignore t :which-key "REPL")
   "m" '(:ignore t :which-key "elixir / mix")
-  "s" '(:ignore t :which-key "session")
-  "w" '(:ignore t :which-key "s-exp"))
+  "s" '(:ignore t :which-key "session"))
 
 (general-define-key
  :states '(normal motion)

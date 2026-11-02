@@ -32,17 +32,16 @@ The first start installs the packages and compiles the vterm module, which needs
 
 | nvim | Emacs |
 |---|---|
-| `<leader>tab` | `,to` (new tab) |
-| `<leader>>>`, `<leader><<` | `,>`, `,<`. Press `>` or `<` again to repeat. |
-| `<leader>,>>`, `<leader>,<<` | `,,>`, `,,<` |
-| `case`, `css`, `csk`, `csc`, `csp`, `csm` | `,kr`, `,ks`, `,kk`, `,kc`, `,kp`, `,km` |
+| `case` (rotate case) | `,kr`. Binding `case` would break `c` followed by `as`. `cs` + `s/k/c/p/m` work as in nvim, and `,ks` `,kk` `,kc` `,kp` `,km` do the same. |
 | `<leader>repl` | `,repl` asks for the port |
+
+Behaviour that differs:
+- The file tree's root follows the current buffer's project. neo-tree's root stays at the cwd.
+- `,>>`, `,<<` and the `,,` height keys wait up to 1 second for more `>` or `<` presses, as Vim's `timeoutlen` does.
 
 ## Not available
 
 No package gives these, so the config leaves them out:
 - The Portal and Clojure helpers (`,cv`, `,cp`, `,ct`, `,cT`, `,cu`, `,cg`, `,cj`, `,cw`, `,cef`, `,cro`, `,crt`, `,crn`, `,crr`).
-- The vim-sexp keys, except `(` and `)`. parinfer-rust-mode does the paren editing.
-- The empty UUID, hash and timestamp inserts, and `,rt` (retab).
 - Completion of library versions in `deps.edn` (cmp-clojure-deps).
 - The elixir-ls test lenses. Use `,mt` to run the test at the cursor.

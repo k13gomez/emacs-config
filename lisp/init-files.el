@@ -14,10 +14,12 @@
         ;; The first project is expanded when it's added; this would toggle it closed again.
         treemacs-expand-after-init nil)
   (treemacs-follow-mode 1)
-  ;; Always show the current project, as neo-tree shows the current directory.
+  ;; The root follows the current buffer's project. neo-tree's root stays at the cwd; this differs on purpose.
   (treemacs-project-follow-mode 1)
   (treemacs-filewatch-mode 1)
-  (treemacs-git-mode 'simple))
+  (treemacs-git-mode 'simple)
+  ;; neo-tree hides gitignored files (_build, deps, target, ...) as well as dotfiles.
+  (treemacs-hide-gitignored-files-mode 1))
 
 (defun my/treemacs-first-project ()
   (with-current-buffer (window-buffer (get-mru-window nil nil t))
@@ -34,8 +36,10 @@
 (use-package treemacs-evil
   :after (treemacs evil)
   :config
-  ;; As in nvim's tree. This replaces treemacs-evil's `t' prefix of toggles (th, tf, ...).
-  (define-key evil-treemacs-state-map (kbd "t") #'my/treemacs-open-in-tab))
+  ;; As in nvim's tree. This replaces treemacs-evil's `t' prefix of toggles (th, tf, ...),
+  ;; and its `H' (collapse parent) with neo-tree's hidden-file toggle.
+  (define-key evil-treemacs-state-map (kbd "t") #'my/treemacs-open-in-tab)
+  (define-key evil-treemacs-state-map (kbd "H") #'treemacs-toggle-show-dotfiles))
 
 (use-package treemacs-nerd-icons
   :after treemacs

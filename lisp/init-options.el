@@ -35,7 +35,6 @@
 
 (recentf-mode 1)
 (savehist-mode 1)
-(save-place-mode 1)
 (global-auto-revert-mode 1)
 (repeat-mode 1)
 

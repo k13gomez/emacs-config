@@ -10,12 +10,56 @@
         cider-show-error-buffer 'only-in-repl
         cider-auto-select-error-buffer nil))
 
-(use-package parinfer-rust-mode
-  :hook (clojure-mode emacs-lisp-mode)
-  :init
-  (setq parinfer-rust-auto-download t))
+;; One switch for all buffers, as nvim's global g:parinfer_enabled.
+(defvar my/parinfer-enabled t)
+(defconst my/parinfer-modes '(clojure-mode emacs-lisp-mode))
 
-;; `(' and `)' jump to the enclosing bracket, as in vim-sexp. They also leave a string first.
+(defun my/parinfer-maybe-enable ()
+  (when my/parinfer-enabled (parinfer-rust-mode 1)))
+
+(defun my/parinfer-toggle ()
+  "Turn parinfer on or off in every Lisp buffer."
+  (interactive)
+  (setq my/parinfer-enabled (not my/parinfer-enabled))
+  (dolist (buf (buffer-list))
+    (with-current-buffer buf
+      (when (apply #'derived-mode-p my/parinfer-modes)
+        (parinfer-rust-mode (if my/parinfer-enabled 1 -1)))))
+  (message "Parinfer %s" (if my/parinfer-enabled "on" "off")))
+
+(use-package parinfer-rust-mode
+  :defer t
+  :init
+  (setq parinfer-rust-auto-download t)
+  (dolist (mode my/parinfer-modes)
+    (add-hook (intern (format "%s-hook" mode)) #'my/parinfer-maybe-enable)))
+
+;; Conjure's ,ece and ,e! act on the form around the cursor; CIDER's commands take the sexp before
+;; point. Move just past the current form first.
+(defun my/goto-current-form-end ()
+  (goto-char (or (nth 8 (syntax-ppss)) (point)))
+  (if (eq (char-syntax (or (char-after) ?\s)) ?\()
+      (forward-sexp)
+    (condition-case nil
+        (up-list)
+      (scan-error (forward-sexp)))))
+
+(defun my/cider-call-on-current-form (command)
+  ;; evil-collection's advice would step one more character past point in normal state.
+  (let ((evil-move-beyond-eol t))
+    (save-excursion
+      (my/goto-current-form-end)
+      (call-interactively command))))
+
+(defun my/cider-eval-form-to-comment ()
+  (interactive)
+  (my/cider-call-on-current-form #'cider-pprint-eval-last-sexp-to-comment))
+
+(defun my/cider-eval-and-replace-form ()
+  (interactive)
+  (my/cider-call-on-current-form #'cider-eval-last-sexp-and-replace))
+
+;; `(' and `)' jump to the enclosing bracket, as in lua/plugins/sexp.lua. They also leave a string first.
 ;; At the top level there is no bracket to go to, so they stay in place.
 (evil-define-motion init-clojure-backward-up-list (count)
   "Move to the opening bracket COUNT levels up."
@@ -49,7 +93,8 @@
   (general-define-key
    :states 'visual
    :keymaps 'clojure-mode-map
-   "E" #'cider-eval-region)
+   :prefix ","
+   "E" '(cider-eval-region :which-key "eval selection"))
   (general-define-key
    :states '(normal visual)
    :keymaps 'clojure-mode-map
@@ -60,9 +105,9 @@
    "ee" '(cider-eval-list-at-point :which-key "eval current form")
    "er" '(cider-eval-defun-at-point :which-key "eval root form")
    "ew" '(cider-eval-sexp-at-point :which-key "eval word")
-   "ece" '(cider-pprint-eval-last-sexp-to-comment :which-key "eval form to comment")
+   "ece" '(my/cider-eval-form-to-comment :which-key "eval form to comment")
    "ecr" '(cider-eval-defun-to-comment :which-key "eval root form to comment")
-   "e!" '(cider-eval-last-sexp-and-replace :which-key "eval and replace form")
+   "e!" '(my/cider-eval-and-replace-form :which-key "eval and replace form")
    "eb" '(cider-load-buffer :which-key "eval buffer")
    "ef" '(cider-load-file :which-key "eval file")
    "ei" '(cider-interrupt :which-key "interrupt")

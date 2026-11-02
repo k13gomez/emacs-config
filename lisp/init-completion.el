@@ -33,11 +33,12 @@
   (setq xref-show-xrefs-function #'consult-xref
         xref-show-definitions-function #'consult-xref))
 
-;; Keys match the nvim-cmp mappings: C-SPC opens, C-b/C-f scroll the docs,
-;; C-e aborts, and RET confirms only an item you selected.
+;; Keys match the nvim-cmp mappings: C-SPC opens, C-b/C-f scroll the docs, C-e aborts, and RET
+;; confirms only an item you selected, else inserts a newline (evil-collection's magic-return, set in init-evil.el).
 (use-package corfu
   :config
   (setq corfu-auto t
+        corfu-auto-prefix 1
         corfu-auto-delay 0.2
         corfu-cycle t
         corfu-preselect 'prompt

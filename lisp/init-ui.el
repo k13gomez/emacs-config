@@ -110,7 +110,9 @@
   (setq tab-bar-show t
         tab-bar-tab-hints t
         tab-bar-close-button-show nil
-        tab-bar-new-button-show nil)
+        tab-bar-new-button-show nil
+        ;; An empty buffer, as :tabnew.
+        tab-bar-new-tab-choice (lambda () (generate-new-buffer "untitled")))
   (tab-bar-mode 1))
 
 ;; Runs here because the restyle needs the doom-modeline and tab-bar faces defined.
@@ -155,17 +157,21 @@ then the tab, then Emacs."
         dashboard-navigator-buttons
         `(((nil "Empty buffer" "" ,(lambda (&rest _) (my/dashboard-new-buffer)) nil "(e) " "   ")
            (nil "Quit" "" ,(lambda (&rest _) (my/dashboard-quit)) nil "(q) " "")))
+        ;; Worded and placed as the startify header's load-time line.
+        dashboard-init-info
+        (lambda ()
+          (format "Emacs loaded %d packages in %.2f ms"
+                  (length package-activated-list)
+                  (* 1000 (float-time (time-subtract after-init-time before-init-time)))))
         dashboard-startupify-list
         '(dashboard-insert-banner
           dashboard-insert-newline
-          dashboard-insert-banner-title
+          dashboard-insert-init-info
+          dashboard-insert-newline
           dashboard-insert-newline
           dashboard-insert-navigator
           dashboard-insert-newline
-          dashboard-insert-init-info
-          dashboard-insert-items
-          dashboard-insert-newline
-          dashboard-insert-footer))
+          dashboard-insert-items))
   ;; Bound in dashboard's own map: evil-collection copies its `e' into the evil map on every redraw.
   (keymap-set dashboard-mode-map "e" #'my/dashboard-new-buffer)
   (evil-define-key 'normal dashboard-mode-map "q" #'my/dashboard-quit)

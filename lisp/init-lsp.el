@@ -13,11 +13,14 @@
 
 (use-package terraform-mode)
 
-;; Format on save for the same file types as the nvim config.
+;; Format on save for the same file types and formatters as conform in the nvim config.
 (use-package apheleia
   :hook ((elixir-ts-mode heex-ts-mode terraform-mode) . apheleia-mode)
   :config
-  (add-to-list 'apheleia-mode-alist '(lua-ts-mode . stylua)))
+  (add-to-list 'apheleia-mode-alist '(lua-ts-mode . stylua))
+  ;; apheleia's defaults are `opentofu' for terraform and prettier (as HTML) for heex.
+  (setf (alist-get 'terraform-mode apheleia-mode-alist) 'terraform
+        (alist-get 'heex-ts-mode apheleia-mode-alist) 'mix-format))
 
 (with-eval-after-load 'general
   (general-define-key

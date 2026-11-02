@@ -6,6 +6,8 @@
   (setq evil-want-integration t
         evil-want-keybinding nil
         evil-want-C-u-scroll t
+        evil-want-C-u-delete t
+        evil-want-Y-yank-to-eol t
         evil-undo-system 'undo-redo
         evil-search-module 'evil-search
         evil-ex-search-case 'smart
@@ -13,10 +15,18 @@
         evil-split-window-below t
         evil-shift-width 4)
   :config
-  (evil-mode 1))
+  (evil-mode 1)
+  ;; nvim's built-in gc/gcc commenting.
+  (evil-define-operator my/evil-comment (beg end)
+    "Comment or uncomment the lines from BEG to END."
+    (comment-or-uncomment-region beg end))
+  (evil-define-key '(normal visual) 'global "gc" #'my/evil-comment))
 
 (use-package evil-collection
   :after evil
+  :init
+  ;; RET with no candidate selected inserts a newline, as nvim-cmp's confirm({ select = false }).
+  (setq evil-collection-corfu-key-themes '(default magic-return))
   :config
   (evil-collection-init))
 
