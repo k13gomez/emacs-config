@@ -60,7 +60,8 @@ The stop is `evil-shift-width', which the mode hooks set per language."
 (use-package which-key
   :ensure nil
   :config
-  (setq which-key-idle-delay 0.3)
+  ;; The docstring warns that 0 can cause issues (emacs-which-key#134). 0.01 looks the same.
+  (setq which-key-idle-delay 0.01)
   (which-key-mode 1))
 
 (use-package general

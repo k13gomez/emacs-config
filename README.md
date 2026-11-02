@@ -45,7 +45,7 @@ On first launch, Emacs installs the packages from GNU ELPA, NonGNU ELPA and MELP
 
 `<leader>` = `,` &nbsp;·&nbsp; `<localleader>` = `,` (same key)
 
-Press a prefix and wait ~300ms for the which-key popup. Leader keys also work in visual state and in the file tree.
+Press a prefix and the which-key popup opens at once. Leader keys also work in visual state and in the file tree.
 To run any command by name, press `,:` or `M-x` (Option+x). The mouse works in the terminal, and the scroll wheel scrolls the window.
 
 ## General
@@ -152,7 +152,7 @@ Horizontal (taller / shorter):
 | `,,>>>` / `,,<<<` | ±10 |
 | `,,>>>>` / `,,<<<<` | ±20 |
 
-After `,>>` or `,<<`, Emacs waits up to 1 second for another `>` or `<` before it resizes.
+After `,>>` or `,<<`, Emacs waits up to 200 ms for another `>` or `<` before it resizes.
 
 ## Terminal (vterm)
 

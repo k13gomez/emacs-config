@@ -11,14 +11,14 @@
         evil-lion-right-align-key (kbd "gA"))
   (evil-lion-mode 1))
 
-;; nvim's ,>> ,>>> ,>>>> resize by 5, 10 and 20. Emacs can't bind a key and a longer key starting
-;; with it, so ,>> waits up to nvim's 'timeoutlen' (1s) for more presses of the same key, as Vim does.
+;; nvim's ,>> ,>>> ,>>>> resize by 5, 10 and 20. Emacs can't bind a key and a longer key that starts
+;; with it. So ,>> waits up to nvim's 'timeoutlen' (200 ms) for more presses of the same key, as Vim does.
 (defun my/resize-command (key sign horizontal)
   (lambda ()
     (interactive)
     (let ((extra 0) event)
       (while (and (< extra 2)
-                  (setq event (read-event nil nil 1.0))
+                  (setq event (read-event nil nil 0.2))
                   (eq event key))
         (setq extra (1+ extra)))
       (when (and event (not (eq event key)))
