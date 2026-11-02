@@ -42,6 +42,5 @@ Behaviour that differs:
 ## Not available
 
 No package gives these, so the config leaves them out:
-- The Portal and Clojure helpers (`,cv`, `,cp`, `,ct`, `,cT`, `,cu`, `,cg`, `,cj`, `,cw`, `,cef`, `,cro`, `,crt`, `,crn`, `,crr`).
 - Completion of library versions in `deps.edn` (cmp-clojure-deps).
 - The elixir-ls test lenses. Use `,mt` to run the test at the cursor.

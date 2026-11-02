@@ -83,6 +83,47 @@
                      (progn (up-list (or count 1)) (1- (point)))
                    (scan-error start))))))
 
+;; The Clojure and Portal helpers from lua/helpers/clojure.lua. Each sends the same form that nvim
+;; sends through ConjureEval, evaluated in the buffer's namespace.
+(defun my/clj-symbol ()
+  (or (cider-symbol-at-point) (user-error "No symbol at point")))
+
+(defmacro my/clj-command (name doc &rest parts)
+  "Define command NAME that evaluates the concatenation of PARTS in the REPL."
+  `(defun ,name ()
+     ,doc
+     (interactive)
+     (cider-interactive-eval (concat ,@parts))))
+
+(my/clj-command my/clj-find-library-versions "Show the latest 10 versions of the library at point."
+  "(do (require '[clojure.edn] '[clojure.tools.deps] '[clojure.tools.deps.extensions] '[clojure.tools.deps.util.maven]) (let [mvn-repos (->> (slurp \"deps.edn\") clojure.edn/read-string :mvn/repos (merge clojure.tools.deps.util.maven/standard-repos)) types (distinct (into [:mvn :git] (clojure.tools.deps.extensions/procurer-types))) lib '"
+  (my/clj-symbol)
+  " procurer {:mvn/repos mvn-repos}] (->> (some #(clojure.tools.deps.extensions/find-versions lib nil % procurer) types) (reverse) (take 10) (vec))))")
+(my/clj-command my/clj-portal-add-lib "Add Portal to the running REPL."
+  "(do (require 'clojure.repl.deps) (clojure.repl.deps/add-lib 'djblue/portal))")
+(my/clj-command my/clj-portal-taps-on "Open Portal and send tap> to it and to println."
+  "(do (require 'portal.api) (portal.api/open) (add-tap #'portal.api/submit) (add-tap #'println))")
+(my/clj-command my/clj-tap-symbol "tap> the symbol at point."
+  "(tap> " (my/clj-symbol) ")")
+(my/clj-command my/clj-portal-taps-off "Stop sending tap> to Portal and println."
+  "(do (require 'portal.api) (portal.api/open) (remove-tap #'portal.api/submit) (remove-tap #'println))")
+(my/clj-command my/clj-portal-selected "Return the value selected in Portal."
+  "(do (require 'portal.api) (portal.api/selected))")
+(my/clj-command my/clj-pid "Show the REPL JVM's process id."
+  "(.. (java.lang.ProcessHandle/current) (pid))")
+(my/clj-command my/clj-warn-on-reflection "Turn on *warn-on-reflection*."
+  "(alter-var-root #'*warn-on-reflection* (constantly true))")
+(my/clj-command my/clj-eval-fn "Call the function at point with no arguments."
+  "(" (my/clj-symbol) ")")
+(my/clj-command my/clj-run-test "Run the test var at point."
+  "(do (require '[clojure.test]) (clojure.test/test-var #'" (my/clj-symbol) "))")
+(my/clj-command my/clj-run-tests "Run the tests in the current namespace."
+  "(do (require '[clojure.test]) (clojure.test/run-tests))")
+(my/clj-command my/clj-reload-ns "Reload the current namespace."
+  "(require (ns-name *ns*) :reload)")
+(my/clj-command my/clj-reset-rules "Reset the clara rules and loader."
+  "(do (rules.core/reset-rules!) (rules.core/reset-loader!))")
+
 (with-eval-after-load 'general
   (general-define-key
    :states 'motion
@@ -102,6 +143,21 @@
    "repl" '(cider-connect-clj :which-key "connect REPL")
    "cf" '(cider-connect-clj :which-key "connect REPL")
    "cd" '(cider-quit :which-key "disconnect")
+   "cv" '(my/clj-find-library-versions :which-key "find library versions")
+   "cp" '(my/clj-portal-add-lib :which-key "Portal: add lib")
+   "ct" '(my/clj-portal-taps-on :which-key "Portal: taps on")
+   "cT" '(my/clj-tap-symbol :which-key "tap> word at cursor")
+   "cu" '(my/clj-portal-taps-off :which-key "Portal: taps off")
+   "cg" '(my/clj-portal-selected :which-key "Portal: get selected")
+   "cj" '(my/clj-pid :which-key "JVM PID")
+   "cw" '(my/clj-warn-on-reflection :which-key "*warn-on-reflection* on")
+   "ce" '(:ignore t :which-key "eval")
+   "cef" '(my/clj-eval-fn :which-key "eval fn at cursor")
+   "cr" '(:ignore t :which-key "clojure: run / reload / reset")
+   "cro" '(my/clj-run-test :which-key "run one test")
+   "crt" '(my/clj-run-tests :which-key "run all tests")
+   "crn" '(my/clj-reload-ns :which-key "reload current ns")
+   "crr" '(my/clj-reset-rules :which-key "reset clara rules")
    "ee" '(cider-eval-list-at-point :which-key "eval current form")
    "er" '(cider-eval-defun-at-point :which-key "eval root form")
    "ew" '(cider-eval-sexp-at-point :which-key "eval word")
