@@ -121,13 +121,54 @@
 (use-package rainbow-delimiters
   :hook (prog-mode . rainbow-delimiters-mode))
 
+(defun my/dashboard-new-buffer ()
+  "Open an empty, unnamed buffer, as `e' does on the nvim start screen."
+  (interactive)
+  (switch-to-buffer (generate-new-buffer "untitled")))
+
+(defun my/dashboard--listed-p (buf)
+  "Non-nil if BUF is a user buffer: files, terminals, untitled. Not *special* ones."
+  (and (buffer-live-p buf)
+       (not (string-match-p "\\`[* ]" (buffer-name buf)))))
+
+(defun my/dashboard-quit ()
+  "Leave the dashboard the way `q' leaves the nvim start screen.
+Go to the previous user buffer if there is one, else close the window,
+then the tab, then Emacs."
+  (interactive)
+  (let ((alt (other-buffer (current-buffer) t)))
+    (cond
+     ((my/dashboard--listed-p alt) (switch-to-buffer alt))
+     ((when-let* ((buf (seq-find #'my/dashboard--listed-p (buffer-list))))
+        (switch-to-buffer buf)))
+     ((not (one-window-p)) (delete-window))
+     ((> (length (tab-bar-tabs)) 1) (tab-close))
+     (t (save-buffers-kill-terminal)))))
+
 (use-package dashboard
   :config
   (setq dashboard-items '((recents . 10) (projects . 5))
         dashboard-projects-backend 'project-el
         dashboard-icon-type 'nerd-icons
         dashboard-set-file-icons t
-        dashboard-startup-banner (expand-file-name "banner.txt" user-emacs-directory))
+        dashboard-startup-banner (expand-file-name "banner.txt" user-emacs-directory)
+        dashboard-navigator-buttons
+        `(((nil "Empty buffer" "" ,(lambda (&rest _) (my/dashboard-new-buffer)) nil "(e) " "   ")
+           (nil "Quit" "" ,(lambda (&rest _) (my/dashboard-quit)) nil "(q) " "")))
+        dashboard-startupify-list
+        '(dashboard-insert-banner
+          dashboard-insert-newline
+          dashboard-insert-banner-title
+          dashboard-insert-newline
+          dashboard-insert-navigator
+          dashboard-insert-newline
+          dashboard-insert-init-info
+          dashboard-insert-items
+          dashboard-insert-newline
+          dashboard-insert-footer))
+  ;; Bound in dashboard's own map: evil-collection copies its `e' into the evil map on every redraw.
+  (keymap-set dashboard-mode-map "e" #'my/dashboard-new-buffer)
+  (evil-define-key 'normal dashboard-mode-map "q" #'my/dashboard-quit)
   (dashboard-setup-startup-hook))
 
 (provide 'init-ui)
