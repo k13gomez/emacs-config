@@ -1,5 +1,7 @@
 # Emacs configuration for Clojure and Elixir
 
+<p align="center"><img src="emacsium.png" alt="Neovimium entangled with Emacsium" width="800"></p>
+
 ## Why two quantum entangled configs
 
 I like Neovim, and it's where I feel at home. I've also always wanted the Clojure integration that CIDER gives Emacs. This pair of configs gets me both: my own Neovim configuration, ported into Emacs. That goes further than switching on evil mode or installing a prepackaged Doom Emacs. The Emacs side works like the Neovim setup I already know, not like someone else's take on Vim inside Emacs.
@@ -9,12 +11,13 @@ This configuration is kept in sync with [k13gomez/nvim-config](https://github.co
 The theme is tokyo-night (night style by default) with doom-modeline. Press `,fs` to switch the style; the choice is kept across restarts.
 Elixir and HEEx files format on save through `mix format`. Terraform files format on save through `terraform fmt`.
 Vim keys come from evil, and the config is built for Emacs in a terminal (`emacs -nw`).
+The dashboard shows `emacsium.png` in a GUI frame, and as a sixel image inside tmux with sixel support. Other terminals show the text banner.
 
 ## Install dependencies
 
 ```bash
 $ brew install ripgrep stylua clojure-lsp/brew/clojure-lsp-native elixir-ls lua-language-server
-$ brew install emacs cmake libtool
+$ brew install emacs cmake libtool imagemagick
 ```
 
 Terraform formatting needs `terraform` on the `PATH`, and Copilot needs Node. The icons need a Nerd Font in the terminal.

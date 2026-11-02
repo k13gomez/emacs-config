@@ -55,6 +55,12 @@ The stop is `evil-shift-width', which the mode hooks set per language."
 (use-package evil-terminal-cursor-changer
   :unless (display-graphic-p)
   :config
+  ;; It sends the shape on every redisplay. Each repeat made tmux repaint the pane, and the dashboard image blinked.
+  (advice-add 'evil-terminal-cursor-changer--make-cursor-shape-seq :filter-return
+              (lambda (seq)
+                (unless (equal seq (terminal-parameter nil 'my/cursor-shape-seq))
+                  (set-terminal-parameter nil 'my/cursor-shape-seq seq)
+                  seq)))
   (evil-terminal-cursor-changer-activate))
 
 (use-package which-key

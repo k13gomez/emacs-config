@@ -147,13 +147,122 @@ then the tab, then Emacs."
      ((> (length (tab-bar-tabs)) 1) (tab-close))
      (t (save-buffers-kill-terminal)))))
 
+;; The dashboard shows emacsium.png as a sixel image in the terminal. The image size comes from the cell size in pixels.
+;; Only tmux reports it, so the image needs tmux with sixel support. Other terminals get banner.txt.
+(defconst my/banner-png (expand-file-name "emacsium.png" user-emacs-directory))
+(defconst my/banner-rows 10)
+(defvar my/banner-enabled 'unknown)
+(defvar my/banner-cache nil "Alist of (WIDTH HEIGHT BACKGROUND) to sixel data.")
+(defvar my/banner-start nil "Marker at the first blank line of the image banner.")
+(defvar my/banner-shown nil)
+(defvar my/banner-timer nil)
+
+(defun my/banner-tmux (format)
+  "Return tmux's value for FORMAT, or nil.
+init-options.el clears $TMUX for child processes, so this gives back the original values."
+  (let ((process-environment
+         (append (seq-filter (lambda (v) (string-match-p "\\`TMUX\\(_PANE\\)?=" v)) initial-environment)
+                 process-environment)))
+    (with-temp-buffer
+      (when (eql 0 (ignore-errors (call-process "tmux" nil t nil "display" "-p" format)))
+        (string-trim (buffer-string))))))
+
+(defun my/banner-enabled-p ()
+  (when (eq my/banner-enabled 'unknown)
+    (setq my/banner-enabled
+          (and (not (display-graphic-p))
+               (equal (getenv "TERM_PROGRAM") "tmux")
+               (executable-find "magick")
+               (equal (my/banner-tmux "#{sixel_support}") "1"))))
+  my/banner-enabled)
+
+(defun my/dashboard-insert-banner ()
+  "Insert blank lines for the sixel image, or else the normal banner."
+  (if (not (my/banner-enabled-p))
+      (dashboard-insert-banner)
+    (goto-char (point-max))
+    (insert "\n")
+    (setq my/banner-start (point-marker))
+    (insert (make-string my/banner-rows ?\n))
+    ;; Point in the image rows made hl-line rewrite them. Emacs then scrolled those rows, and tmux removed the image.
+    ;; Point may stop only below the image. Sticky ends make the buffer start intangible and the next line tangible.
+    (add-text-properties (point-min) (point)
+                         '(cursor-intangible t inhibit-isearch t
+                           front-sticky (cursor-intangible) rear-nonsticky (cursor-intangible)))))
+
+(defun my/dashboard-skip-banner ()
+  "Keep point out of the image rows, and start it below the image."
+  (cursor-intangible-mode 1)
+  ;; hl-line marks the line before `cursor-intangible-mode' moves point, so mark it again after the move.
+  (add-hook 'pre-redisplay-functions #'my/dashboard-rehighlight 90 t)
+  (when (and my/banner-start (eq (marker-buffer my/banner-start) (current-buffer)))
+    (goto-char (+ my/banner-start my/banner-rows))))
+
+(defun my/dashboard-rehighlight (_window)
+  (global-hl-line-highlight))
+
+(defun my/dashboard-initialize-tangible (initialize &rest args)
+  "Run INITIALIZE with ARGS while cursor-sensor is off.
+It redisplays with point at the buffer start, which is intangible. On a window's first
+redisplay that makes `cursor-intangible-mode' signal an error in Emacs 31."
+  (let ((cursor-sensor-inhibit t))
+    (apply initialize args)))
+
+(defun my/banner-sixel (width height)
+  "Return sixel data for the PNG at WIDTH x HEIGHT pixels.
+The PNG is flattened onto the theme background, so a style switch with ,fs still matches."
+  (let* ((bg (apply #'format "#%02x%02x%02x"
+                    (mapcar (lambda (c) (/ c 256)) (color-values (face-background 'default nil t)))))
+         (key (list width height bg)))
+    (or (alist-get key my/banner-cache nil nil #'equal)
+        (setf (alist-get key my/banner-cache nil nil #'equal)
+              (with-temp-buffer
+                (set-buffer-multibyte nil)
+                (let ((coding-system-for-read 'binary))
+                  (call-process "magick" nil t nil my/banner-png "-background" bg "-flatten"
+                                "-resize" (format "%dx%d" width height) "sixel:-"))
+                (buffer-string))))))
+
+(defun my/banner-draw ()
+  "Draw the image over the blank banner lines, centered in the dashboard window."
+  (when-let* ((win (get-buffer-window dashboard-buffer-name))
+              ((eq (marker-buffer my/banner-start) (window-buffer win)))
+              (cell (split-string (or (my/banner-tmux "#{client_cell_width} #{client_cell_height}") "")))
+              ((= (length cell) 2))
+              (height (* my/banner-rows (string-to-number (cadr cell))))
+              (cols (ceiling (* 3 height) (string-to-number (car cell))))
+              (posn (progn (redisplay t) (posn-at-point my/banner-start win)))
+              (edges (window-inside-edges win)))
+    ;; Terminal rows and columns count from 1, Emacs ones from 0.
+    (send-string-to-terminal
+     (concat "\e7"
+             (format "\e[%d;%dH"
+                     (+ (nth 1 edges) (cdr (posn-col-row posn)) 1)
+                     (+ (nth 0 edges) (max 0 (/ (- (window-body-width win) cols) 2)) 1))
+             (my/banner-sixel (* 3 height) height)
+             "\e8"))
+    (setq my/banner-shown t)))
+
+(defun my/banner-update (&rest _)
+  "Clear the old image and draw it again while the dashboard is visible.
+`redraw-frame' clears the screen, and tmux drops the image with it."
+  (when (and (my/banner-enabled-p)
+             (or my/banner-shown (get-buffer-window dashboard-buffer-name)))
+    (when my/banner-shown
+      (redraw-frame)
+      (setq my/banner-shown nil))
+    ;; Both window hooks run at startup. Two draws stacked two images, and the image blinked.
+    (when (timerp my/banner-timer) (cancel-timer my/banner-timer))
+    (setq my/banner-timer (run-at-time 0 nil #'my/banner-draw))))
+
 (use-package dashboard
   :config
   (setq dashboard-items '((recents . 10) (projects . 5))
         dashboard-projects-backend 'project-el
         dashboard-icon-type 'nerd-icons
         dashboard-set-file-icons t
-        dashboard-startup-banner (expand-file-name "banner.txt" user-emacs-directory)
+        ;; A GUI frame shows the PNG itself. In a terminal, `my/dashboard-insert-banner' decides.
+        dashboard-startup-banner (cons my/banner-png (expand-file-name "banner.txt" user-emacs-directory))
         dashboard-navigator-buttons
         `(((nil "Empty buffer" "" ,(lambda (&rest _) (my/dashboard-new-buffer)) nil "(e) " "   ")
            (nil "Quit" "" ,(lambda (&rest _) (my/dashboard-quit)) nil "(q) " "")))
@@ -164,7 +273,7 @@ then the tab, then Emacs."
                   (length package-activated-list)
                   (* 1000 (float-time (time-subtract after-init-time before-init-time)))))
         dashboard-startupify-list
-        '(dashboard-insert-banner
+        '(my/dashboard-insert-banner
           dashboard-insert-newline
           dashboard-insert-init-info
           dashboard-insert-newline
@@ -175,6 +284,12 @@ then the tab, then Emacs."
   ;; Bound in dashboard's own map: evil-collection copies its `e' into the evil map on every redraw.
   (keymap-set dashboard-mode-map "e" #'my/dashboard-new-buffer)
   (evil-define-key 'normal dashboard-mode-map "q" #'my/dashboard-quit)
+  ;; `dashboard-initialize' moves point back to the buffer start after the mode hook runs.
+  (add-hook 'dashboard-mode-hook #'my/dashboard-skip-banner)
+  (add-hook 'dashboard-after-initialize-hook #'my/dashboard-skip-banner)
+  (advice-add 'dashboard-initialize :around #'my/dashboard-initialize-tangible)
+  (add-hook 'window-buffer-change-functions #'my/banner-update)
+  (add-hook 'window-size-change-functions #'my/banner-update)
   (dashboard-setup-startup-hook))
 
 (provide 'init-ui)
