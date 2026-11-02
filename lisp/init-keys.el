@@ -12,6 +12,8 @@
   (evil-lion-mode 1))
 
 (my/leader
+  "h" '(dashboard-open :which-key "start screen")
+
   "b" '(:ignore t :which-key "buffer")
   "bw" '(save-buffer :which-key "write buffer")
   "bq" '(evil-quit :which-key "quit buffer")
