@@ -13,16 +13,28 @@
                    (read (current-buffer))))))
     (if (memq theme my/tokyo-night-variants) theme 'tokyo-night)))
 
-;; Declared special so the let below binds it dynamically, compiled or not.
-(defvar consult-themes)
+(declare-function consult--read "consult")
 
 (defun my/tokyo-night-pick ()
   "Pick a Tokyo Night variant with live preview and remember it across restarts."
   (interactive)
-  ;; Load consult outside the let, or its defcustom would see only the let binding.
   (require 'consult)
-  (let ((consult-themes my/tokyo-night-variants))
-    (call-interactively #'consult-theme))
+  ;; consult-theme always adds a "default" entry (no theme), which also removes the banner.
+  ;; So this calls consult--read with only the four themes.
+  (let ((saved (car custom-enabled-themes))
+        (names (mapcar #'symbol-name my/tokyo-night-variants)))
+    (consult--read names
+                   :prompt "Theme: "
+                   :require-match t
+                   :category 'theme
+                   ;; Text that matches no theme gives nil, so the preview leaves the theme alone.
+                   :lookup (lambda (selected &rest _) (intern-soft (car (member selected names))))
+                   :state (lambda (action theme)
+                            (with-selected-window (or (active-minibuffer-window) (selected-window))
+                              (pcase action
+                                ('return (consult-theme (or theme saved)))
+                                ((and 'preview (guard theme)) (consult-theme theme)))))
+                   :default (and saved (symbol-name saved))))
   (let ((theme (car custom-enabled-themes)))
     (when (memq theme my/tokyo-night-variants)
       (with-temp-file my/tokyo-night-file
