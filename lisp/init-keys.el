@@ -63,19 +63,35 @@
              (format-time-string "%F" (string-to-number (funcall field "author-time")))
              (funcall field "summary"))))
 
-;; `cs' + s/k/c/p/m converts case, as vim-case-master in nvim. `s' is bound in operator state so
-;; plain `c' still works; the conversion runs instead of the pending change (the evil-surround trick).
+(defun my/case-rotate ()
+  "Rotate the symbol at point snake -> kebab -> camel -> Pascal -> MACRO, as vim-case-master.
+string-inflection's own cycle uses a different order."
+  (interactive)
+  (require 'string-inflection)
+  (let* ((bounds (save-excursion (funcall string-inflection-bounds-function)))
+         (word (buffer-substring-no-properties (car bounds) (cdr bounds)))
+         (case-fold-search nil))
+    (funcall (cond ((string-search "-" word) #'string-inflection-lower-camel-case)
+                   ((string-match-p "\\`[A-Z_]*\\'" word) #'string-inflection-snake-case)
+                   ((string-search "_" word) #'string-inflection-kebab-case)
+                   ((string-match-p "\\`[A-Z]" word) #'string-inflection-upcase)
+                   (t #'string-inflection-camel-case)))))
+
+;; `cs' + r/s/k/c/p/m rotates or converts case, as vim-case-master in nvim. `s' is bound in operator
+;; state so plain `c' still works; the conversion runs instead of the pending change (the evil-surround trick).
+;; These are string-inflection's autoloaded names; its older aliases only exist once it has loaded.
 (defconst my/case-commands
-  '((?s . string-inflection-underscore)
+  '((?r . my/case-rotate)
+    (?s . string-inflection-snake-case)
     (?k . string-inflection-kebab-case)
-    (?c . string-inflection-lower-camelcase)
-    (?p . string-inflection-camelcase)
+    (?c . string-inflection-lower-camel-case)
+    (?p . string-inflection-camel-case)
     (?m . string-inflection-upcase)))
 
 (evil-define-command my/evil-case-convert ()
   (setq evil-inhibit-operator t)
   (when (eq evil-this-operator #'evil-change)
-    (when-let* ((cmd (alist-get (read-char "Case: [s]nake [k]ebab [c]amel [p]ascal [m]acro")
+    (when-let* ((cmd (alist-get (read-char "Case: [r]otate [s]nake [k]ebab [c]amel [p]ascal [m]acro")
                                 my/case-commands)))
       (funcall cmd))))
 (define-key evil-operator-state-map "s" #'my/evil-case-convert)
@@ -150,11 +166,11 @@
   "rt" '(my/retab :which-key "retab")
 
   "k" '(:ignore t :which-key "case")
-  "kr" '(string-inflection-all-cycle :which-key "rotate case")
-  "ks" '(string-inflection-underscore :which-key "snake_case")
+  "kr" '(my/case-rotate :which-key "rotate case")
+  "ks" '(string-inflection-snake-case :which-key "snake_case")
   "kk" '(string-inflection-kebab-case :which-key "kebab-case")
-  "kc" '(string-inflection-lower-camelcase :which-key "camelCase")
-  "kp" '(string-inflection-camelcase :which-key "PascalCase")
+  "kc" '(string-inflection-lower-camel-case :which-key "camelCase")
+  "kp" '(string-inflection-camel-case :which-key "PascalCase")
   "km" '(string-inflection-upcase :which-key "MACRO_CASE")
 
   "d" '(:ignore t :which-key "lsp / diagnostics")

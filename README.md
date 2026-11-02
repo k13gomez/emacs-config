@@ -32,8 +32,8 @@ The first start installs the packages and compiles the vterm module, which needs
 
 | nvim | Emacs |
 |---|---|
-| `case` (rotate case) | `,kr`. Binding `case` would break `c` followed by `as`. `cs` + `s/k/c/p/m` work as in nvim, and `,ks` `,kk` `,kc` `,kp` `,km` do the same. |
 | `<leader>repl` | `,repl` asks for the port |
+| (none) | `,kr` `,ks` `,kk` `,kc` `,kp` `,km` repeat the `csr` `css` `csk` `csc` `csp` `csm` case keys |
 
 Behaviour that differs:
 - The file tree's root follows the current buffer's project. neo-tree's root stays at the cwd.
