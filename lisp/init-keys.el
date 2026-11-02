@@ -105,6 +105,7 @@ string-inflection's own cycle uses a different order."
 
 (my/leader
   "h" '(dashboard-open :which-key "start screen")
+  ":" '(execute-extended-command :which-key "commands (M-x)")
 
   "n" '(:ignore t :which-key "new")
   "ne" '(tab-new :which-key "empty buffer in new tab")
