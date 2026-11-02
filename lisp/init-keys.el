@@ -1,8 +1,8 @@
 ;;; init-keys.el --- Global leader keys (mirrors config/keymaps.lua) -*- lexical-binding: t; -*-
 
-(use-package uuidgen)
-(use-package xml-format)
-(use-package string-inflection)
+(use-package uuidgen :defer t)
+(use-package xml-format :defer t)
+(use-package string-inflection :defer t)
 
 (use-package evil-lion
   :after evil

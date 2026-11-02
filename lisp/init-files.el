@@ -1,6 +1,7 @@
 ;;; init-files.el --- File tree on the right (neo-tree) -*- lexical-binding: t; -*-
 
 (use-package treemacs
+  :defer t
   :config
   ;; No saved state: nothing visits the persist file, so `:qa' never asks about it, and sessions don't share it.
   (advice-add 'treemacs--persist :override #'ignore)

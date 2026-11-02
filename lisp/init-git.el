@@ -1,6 +1,6 @@
 ;;; init-git.el --- magit (fugitive) and diff-hl (gitsigns) -*- lexical-binding: t; -*-
 
-(use-package magit)
+(use-package magit :defer t)
 
 (use-package diff-hl
   :config

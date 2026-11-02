@@ -96,6 +96,7 @@
                 (kbd "C-v") #'my/vterm-send-next-key))))
 
 (use-package vterm
+  :defer t
   :init
   (setq vterm-always-compile-module t)
   :config

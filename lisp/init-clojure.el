@@ -1,8 +1,9 @@
 ;;; init-clojure.el --- Clojure: CIDER (Conjure), parinfer -*- lexical-binding: t; -*-
 
-(use-package clojure-mode)
+(use-package clojure-mode :defer t)
 
 (use-package cider
+  :defer t
   :config
   ;; Conjure does not open the REPL buffer on connect. CIDER must not either.
   (setq cider-repl-pop-to-buffer-on-connect nil
