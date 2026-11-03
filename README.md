@@ -56,7 +56,7 @@ To run any command by name, press `,:` or `M-x` (Option+x). The mouse works in t
 | Key | Action |
 |---|---|
 | `,:` | Search and run commands (`M-x`) |
-| `,h` | Start screen |
+| `,h` | Start screen, in a new tab (or go to the one already open) |
 | `,ne` | Empty buffer in new tab |
 | `,nt` | Terminal in new tab |
 | `,bw` / `,bW` | Write buffer / write all buffers |
@@ -336,11 +336,11 @@ Programming buffers fold by code block (hideshow). Folds start open.
 
 ## Start screen (dashboard)
 
-The start screen lists recent files and projects, and shows how long startup took. `,h` opens it again.
+The start screen lists recent files and projects, and shows how long startup took. `,h` opens it again in a new tab, so the current buffer stays put. If the start screen is already open in a window or tab, `,h` goes there instead.
 
 The terminal image comes from `sixels/<theme>-<width>x<height>.sixel`, for example `sixels/tokyo-night-storm-952x310.sixel`. The size is the image padded to whole terminal cells, so each cell size gets its own file. When the file for the current theme and cell size is missing, ImageMagick renders it, including while `,fs` previews a style. Later starts reuse it. The files are a local cache and git ignores them. After a change to `emacsium.png`, delete the files in `sixels/` to render them again.
 
 | Key | Action |
 |---|---|
 | `e` | New empty buffer |
-| `q` | Leave the start screen (back to the previous buffer, or close the window, tab or Emacs) |
+| `q` | Leave the start screen (closes the tab if `,h` opened it; otherwise back to the previous buffer, or close the window, tab or Emacs) |

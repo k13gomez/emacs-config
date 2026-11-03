@@ -104,7 +104,7 @@ string-inflection's own cycle uses a different order."
 (evil-define-key 'normal 'global (kbd "C-l") #'my/clear-highlight)
 
 (my/leader
-  "h" '(dashboard-open :which-key "start screen")
+  "h" '(my/dashboard-open-tab :which-key "start screen")
   ":" '(execute-extended-command :which-key "commands (M-x)")
 
   "n" '(:ignore t :which-key "new")

@@ -145,13 +145,28 @@
   (and (buffer-live-p buf)
        (not (string-match-p "\\`[* ]" (buffer-name buf)))))
 
+(defun my/dashboard-open-tab ()
+  "Show the dashboard without replacing the current buffer, as ,h does in nvim.
+Go to the window or tab that already shows it, else open it in a new tab."
+  (interactive)
+  (unless (derived-mode-p 'dashboard-mode)
+    (if-let* ((tab (tab-bar-get-buffer-tab dashboard-buffer-name)))
+        (progn (tab-bar-select-tab (1+ (alist-get 'index tab)))
+               (select-window (get-buffer-window dashboard-buffer-name)))
+      ;; t keeps the current buffer, so the new tab does not leave an "untitled" buffer behind.
+      (let ((tab-bar-new-tab-choice t)) (tab-new))
+      (set-window-parameter nil 'my/dashboard-tab t)
+      (dashboard-open))))
+
 (defun my/dashboard-quit ()
   "Leave the dashboard the way `q' leaves the nvim start screen.
-Go to the previous user buffer if there is one, else close the window,
-then the tab, then Emacs."
+In a tab opened by `my/dashboard-open-tab', close the tab. Otherwise go to the
+previous user buffer if there is one, else close the window, then the tab, then Emacs."
   (interactive)
   (let ((alt (other-buffer (current-buffer) t)))
     (cond
+     ((and (window-parameter nil 'my/dashboard-tab) (one-window-p) (cdr (tab-bar-tabs)))
+      (tab-close))
      ((my/dashboard--listed-p alt) (switch-to-buffer alt))
      ((when-let* ((buf (seq-find #'my/dashboard--listed-p (buffer-list))))
         (switch-to-buffer buf)))
