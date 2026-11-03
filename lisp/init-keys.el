@@ -104,7 +104,7 @@ string-inflection's own cycle uses a different order."
 (evil-define-key 'normal 'global (kbd "C-l") #'my/clear-highlight)
 
 (my/leader
-  "h" '(my/dashboard-open-tab :which-key "start screen")
+  "w" '(my/dashboard-open-tab :which-key "start screen")
   ":" '(execute-extended-command :which-key "commands (M-x)")
 
   "n" '(:ignore t :which-key "new")
@@ -195,6 +195,11 @@ string-inflection's own cycle uses a different order."
   "Gs" '(diff-hl-stage-current-hunk :which-key "stage hunk")
   "Gr" '(diff-hl-revert-hunk :which-key "reset hunk")
   "Gb" '(my/git-blame-line :which-key "blame line")
+
+  "h" '(:ignore t :which-key "hunk")
+  "hr" '(diff-hl-revert-hunk :which-key "reset hunk")
+  "hs" '(diff-hl-stage-current-hunk :which-key "stage hunk")
+  "hp" '(diff-hl-show-hunk :which-key "preview hunk")
 
   "c" '(:ignore t :which-key "clojure / elixir")
   "e" '(:ignore t :which-key "eval")

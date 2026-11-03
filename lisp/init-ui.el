@@ -146,7 +146,7 @@
        (not (string-match-p "\\`[* ]" (buffer-name buf)))))
 
 (defun my/dashboard-open-tab ()
-  "Show the dashboard without replacing the current buffer, as ,h does in nvim.
+  "Show the dashboard without replacing the current buffer, as ,w does in nvim.
 Go to the window or tab that already shows it, else open it in a new tab."
   (interactive)
   (unless (derived-mode-p 'dashboard-mode)
