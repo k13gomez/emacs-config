@@ -332,7 +332,8 @@ A file whose header shows another size, such as an empty one left by a failed re
 
 (use-package dashboard
   :config
-  (setq dashboard-items '((recents . 10) (projects . 5))
+  (setq dashboard-buffer-name "*welcome*"
+        dashboard-items '((recents . 10) (projects . 5))
         dashboard-projects-backend 'project-el
         dashboard-icon-type 'nerd-icons
         dashboard-set-file-icons t
