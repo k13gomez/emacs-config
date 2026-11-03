@@ -159,8 +159,8 @@ then the tab, then Emacs."
      ((> (length (tab-bar-tabs)) 1) (tab-close))
      (t (save-buffers-kill-terminal)))))
 
-;; The dashboard shows a sixel image in the terminal. sixels/ keeps one file for each theme.
-;; A theme without a file gets one rendered with ImageMagick, and later starts use it again.
+;; The dashboard shows a sixel image in the terminal. sixels/ keeps one file for each theme and cell size.
+;; A missing file is rendered with ImageMagick, and later starts use it again. git ignores sixels/.
 ;; The layout needs the cell size in pixels. Only tmux reports it, so the image needs tmux and a terminal with sixel.
 ;; Other terminals get banner.txt.
 (defconst my/banner-png (expand-file-name "emacsium.png" user-emacs-directory))
@@ -171,7 +171,7 @@ then the tab, then Emacs."
 (defvar my/banner-cell-width nil)
 (defvar my/banner-cell-height nil)
 (defvar my/banner-enabled 'unknown)
-(defvar my/banner-cache nil "Alist of theme name to sixel data.")
+(defvar my/banner-cache nil "Alist of sixel file name to sixel data.")
 (defvar my/banner-start nil "Marker at the first blank line of the image banner.")
 (defvar my/banner-shown nil)
 (defvar my/banner-timer nil)
@@ -266,20 +266,23 @@ The theme background fills the cells around the image, or a black band shows."
 
 (defun my/banner-sixel ()
   "Return the sixel data for the active theme, or an empty string.
-A file of a different size, for example after a font change, is rendered again."
+The file name carries the padded size, so a font change gets its own file and old files stay as they are.
+A file whose header shows another size, such as an empty one left by a failed render, is rendered again."
   (let ((theme (car custom-enabled-themes)))
-    (cond ((not (and theme my/banner-cell-width)) "")
-          ((alist-get theme my/banner-cache))
-          (t (let* ((width (* (ceiling my/banner-width my/banner-cell-width) my/banner-cell-width))
-                    (height (* my/banner-rows my/banner-cell-height))
-                    (file (expand-file-name (format "sixels/%s.sixel" theme) user-emacs-directory))
-                    (data (my/banner-read file)))
-               (unless (and data
-                            (string-match "\\`\eP[^q]*q\"1;1;\\([0-9]+\\);\\([0-9]+\\)" data)
-                            (= (string-to-number (match-string 1 data)) width)
-                            (= (string-to-number (match-string 2 data)) height))
-                 (setq data (my/banner-render file width height)))
-               (setf (alist-get theme my/banner-cache) (or data "")))))))
+    (if (not (and theme my/banner-cell-width))
+        ""
+      (let* ((width (* (ceiling my/banner-width my/banner-cell-width) my/banner-cell-width))
+             (height (* my/banner-rows my/banner-cell-height))
+             (file (expand-file-name (format "sixels/%s-%dx%d.sixel" theme width height)
+                                     user-emacs-directory)))
+        (or (alist-get file my/banner-cache nil nil #'equal)
+            (let ((data (my/banner-read file)))
+              (unless (and data
+                           (string-match "\\`\eP[^q]*q\"1;1;\\([0-9]+\\);\\([0-9]+\\)" data)
+                           (= (string-to-number (match-string 1 data)) width)
+                           (= (string-to-number (match-string 2 data)) height))
+                (setq data (my/banner-render file width height)))
+              (setf (alist-get file my/banner-cache nil nil #'equal) (or data ""))))))))
 
 (defun my/banner-draw ()
   "Draw the image over the blank banner lines, centered in the dashboard window."

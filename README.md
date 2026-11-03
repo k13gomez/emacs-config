@@ -338,7 +338,7 @@ Programming buffers fold by code block (hideshow). Folds start open.
 
 The start screen lists recent files and projects, and shows how long startup took. `,h` opens it again.
 
-The terminal image comes from `sixels/<theme>.sixel`, for example `sixels/tokyo-night-storm.sixel`. A theme without a file gets one rendered with ImageMagick on the first start, and later starts use it again. After a change to `emacsium.png`, delete the files in `sixels/` to render them again. A file is also rendered again when the terminal's cell size changes.
+The terminal image comes from `sixels/<theme>-<width>x<height>.sixel`, for example `sixels/tokyo-night-storm-952x310.sixel`. The size is the image padded to whole terminal cells, so each cell size gets its own file. When the file for the current theme and cell size is missing, ImageMagick renders it, including while `,fs` previews a style. Later starts reuse it. The files are a local cache and git ignores them. After a change to `emacsium.png`, delete the files in `sixels/` to render them again.
 
 | Key | Action |
 |---|---|
