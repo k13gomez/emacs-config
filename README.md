@@ -8,7 +8,7 @@ I like Neovim, and it's where I feel at home. I've also always wanted the Clojur
 
 This configuration is kept in sync with [k13gomez/nvim-config](https://github.com/k13gomez/nvim-config) through quantum entanglement.
 
-The theme is tokyo-night (night style by default) with doom-modeline. Press `,fs` to switch the style; the choice is kept across restarts.
+The theme is tokyo-night (night style by default) with doom-modeline. Press `,fs` to switch the style. The choice is saved in `~/.local/state/tokyonight/style`, which Neovim, tmux and WezTerm also follow, so switching here recolors all of them.
 Elixir and HEEx files format on save through `mix format`. Terraform files format on save through `terraform fmt`.
 Vim keys come from evil, and the config is built for Emacs in a terminal (`emacs -nw`).
 The dashboard shows `emacsium.png` in a GUI frame. In a terminal, it shows a sixel image inside tmux, if the terminal supports sixel. Other terminals show the text banner.

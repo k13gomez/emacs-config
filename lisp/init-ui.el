@@ -3,15 +3,45 @@
 (defconst my/tokyo-night-variants
   '(tokyo-night tokyo-night-storm tokyo-night-moon tokyo-night-day))
 
-;; *.eld is already gitignored, so the saved choice stays out of the repo.
-(defvar my/tokyo-night-file (expand-file-name "tokyo-night.eld" user-emacs-directory))
+;; Holds one word (night, storm, moon or day). Neovim, tmux (~/.byobu/tokyonight.tmux) and
+;; WezTerm read the same file, so a switch in any editor reaches all of them.
+(defvar my/tokyo-night-file (expand-file-name "~/.local/state/tokyonight/style"))
+
+(defun my/tokyo-night-read ()
+  "The theme named in `my/tokyo-night-file', or nil if it names none."
+  (let* ((style (ignore-errors
+                  (with-temp-buffer
+                    (insert-file-contents my/tokyo-night-file)
+                    (string-trim (buffer-string)))))
+         (theme (cond ((equal style "night") 'tokyo-night)
+                      (style (intern-soft (concat "tokyo-night-" style))))))
+    (and (memq theme my/tokyo-night-variants) theme)))
 
 (defun my/tokyo-night-saved ()
-  (let ((theme (ignore-errors
-                 (with-temp-buffer
-                   (insert-file-contents my/tokyo-night-file)
-                   (read (current-buffer))))))
-    (if (memq theme my/tokyo-night-variants) theme 'tokyo-night)))
+  (or (my/tokyo-night-read) 'tokyo-night))
+
+(defun my/tokyo-night-save (theme)
+  (make-directory (file-name-directory my/tokyo-night-file) t)
+  (with-temp-file my/tokyo-night-file
+    (insert (if (eq theme 'tokyo-night)
+                "night"
+              (substring (symbol-name theme) (length "tokyo-night-")))
+            "\n"))
+  (when-let* ((tmux (executable-find "tmux")))
+    (call-process tmux nil 0 nil "source-file" "-q" (expand-file-name "~/.byobu/tokyonight.tmux"))))
+
+(defun my/tokyo-night-follow ()
+  "Switch theme whenever another editor rewrites `my/tokyo-night-file'."
+  (unless (file-exists-p my/tokyo-night-file)
+    (my/tokyo-night-save (my/tokyo-night-saved)))
+  (file-notify-add-watch
+   my/tokyo-night-file '(change)
+   (lambda (_event)
+     ;; A writer truncates before writing, so an event can see an empty file; skip those.
+     (let ((theme (my/tokyo-night-read)))
+       (when (and theme (not (eq theme (car custom-enabled-themes))))
+         (mapc #'disable-theme custom-enabled-themes)
+         (load-theme theme t))))))
 
 (declare-function consult--read "consult")
 
@@ -37,8 +67,7 @@
                    :default (and saved (symbol-name saved))))
   (let ((theme (car custom-enabled-themes)))
     (when (memq theme my/tokyo-night-variants)
-      (with-temp-file my/tokyo-night-file
-        (prin1 theme (current-buffer))))))
+      (my/tokyo-night-save theme))))
 
 ;; The mode colours of lualine's tokyonight theme. Any other state, including nil in the
 ;; minibuffer, gets yellow, lualine's command-mode colour.
@@ -91,7 +120,8 @@
   :init
   (setq tokyo-night-flat-mode-line t)
   :config
-  (load-theme (my/tokyo-night-saved) t))
+  (load-theme (my/tokyo-night-saved) t)
+  (my/tokyo-night-follow))
 
 (use-package nerd-icons)
 
