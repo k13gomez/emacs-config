@@ -41,12 +41,7 @@
 (global-auto-revert-mode 1)
 (repeat-mode 1)
 
-;; Terminal support: mouse, and the macOS clipboard through pbcopy and pbpaste.
-(unless (display-graphic-p)
-  (xterm-mouse-mode 1)
-  ;; xterm-mouse emits wheel-up/wheel-down, which only mwheel binds, and it isn't preloaded in a tty session.
-  (mouse-wheel-mode 1))
-
+;; Terminal support: the macOS clipboard through pbcopy and pbpaste.
 (use-package xclip
   :config
   (setq xclip-method 'pbpaste)

@@ -20,6 +20,7 @@
 (add-to-list 'load-path (expand-file-name "lisp" user-emacs-directory))
 
 (require 'init-options)
+(require 'init-mouse)
 (require 'init-evil)
 (require 'init-ui)
 (require 'init-completion)
