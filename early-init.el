@@ -5,6 +5,7 @@
 
 ;; init.el starts package.el itself, after it sets the archives.
 (setq package-enable-at-startup nil)
+(setq package-native-compile t)
 
 (setq inhibit-startup-screen t)
 (menu-bar-mode -1)

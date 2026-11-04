@@ -1,6 +1,15 @@
 ;;; init-clojure.el --- Clojure: CIDER (Conjure), parinfer -*- lexical-binding: t; -*-
 
+;; CIDER requires clojure-mode, but files open in clojure-ts-mode for tree-sitter, as in nvim.
 (use-package clojure-mode :defer t)
+
+(use-package clojure-ts-mode
+  :defer t
+  :init
+  (dolist (remap '((clojure-mode . clojure-ts-mode)
+                   (clojurescript-mode . clojure-ts-clojurescript-mode)
+                   (clojurec-mode . clojure-ts-clojurec-mode)))
+    (add-to-list 'major-mode-remap-alist remap)))
 
 (use-package cider
   :defer t
@@ -12,7 +21,7 @@
 
 ;; One switch for all buffers, as nvim's global g:parinfer_enabled.
 (defvar my/parinfer-enabled t)
-(defconst my/parinfer-modes '(clojure-mode emacs-lisp-mode))
+(defconst my/parinfer-modes '(clojure-mode clojure-ts-mode emacs-lisp-mode))
 
 (defun my/parinfer-maybe-enable ()
   (when my/parinfer-enabled (parinfer-rust-mode 1)))
@@ -127,18 +136,18 @@
 (with-eval-after-load 'general
   (general-define-key
    :states 'motion
-   :keymaps '(clojure-mode-map emacs-lisp-mode-map)
+   :keymaps '(clojure-mode-map clojure-ts-mode-map emacs-lisp-mode-map)
    "(" #'init-clojure-backward-up-list
    ")" #'init-clojure-up-list)
   ;; The keys follow the Conjure defaults.
   (general-define-key
    :states 'visual
-   :keymaps 'clojure-mode-map
+   :keymaps '(clojure-mode-map clojure-ts-mode-map)
    :prefix ","
    "E" '(cider-eval-region :which-key "eval selection"))
   (general-define-key
    :states '(normal visual)
-   :keymaps 'clojure-mode-map
+   :keymaps '(clojure-mode-map clojure-ts-mode-map)
    :prefix ","
    "repl" '(cider-connect-clj :which-key "connect REPL")
    "cf" '(cider-connect-clj :which-key "connect REPL")
