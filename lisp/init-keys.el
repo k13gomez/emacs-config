@@ -182,7 +182,7 @@ string-inflection's own cycle uses a different order."
   "km" '(string-inflection-upcase :which-key "MACRO_CASE")
 
   "d" '(:ignore t :which-key "lsp / diagnostics")
-  "df" '(apheleia-format-buffer :which-key "format buffer")
+  "df" '(my/format-buffer :which-key "format buffer")
 
   "p" '(:ignore t :which-key "packages")
   "pu" '(package-upgrade-all :which-key "upgrade packages")

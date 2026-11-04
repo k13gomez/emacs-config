@@ -2,7 +2,7 @@
 
 (use-package eglot
   :ensure nil
-  :hook ((clojure-mode clojurescript-mode clojurec-mode
+  :hook ((clojure-mode clojurescript-mode clojurec-mode clojure-ts-mode
           elixir-ts-mode heex-ts-mode lua-ts-mode)
          . eglot-ensure)
   :config
@@ -21,6 +21,20 @@
   ;; apheleia's defaults are `opentofu' for terraform and prettier (as HTML) for heex.
   (setf (alist-get 'terraform-mode apheleia-mode-alist) 'terraform
         (alist-get 'heex-ts-mode apheleia-mode-alist) 'mix-format))
+
+;; As nvim's ,df (conform with lsp_format = "fallback"): conform's own formatters where it has
+;; one, the language server otherwise. apheleia stays the fallback for files without a server.
+(defun my/format-buffer ()
+  "Format the region if active, otherwise the buffer."
+  (interactive)
+  (cond ((derived-mode-p 'lua-ts-mode 'terraform-mode)
+         (call-interactively #'apheleia-format-buffer))
+        ((and (bound-and-true-p eglot--managed-mode)
+              (eglot-server-capable :documentFormattingProvider))
+         (if (use-region-p)
+             (eglot-format (region-beginning) (region-end))
+           (eglot-format-buffer)))
+        (t (call-interactively #'apheleia-format-buffer))))
 
 (with-eval-after-load 'general
   (general-define-key
