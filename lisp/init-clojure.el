@@ -1,7 +1,9 @@
 ;;; init-clojure.el --- Clojure: CIDER (Conjure), parinfer -*- lexical-binding: t; -*-
 
 ;; CIDER requires clojure-mode, but files open in clojure-ts-mode for tree-sitter, as in nvim.
-(use-package clojure-mode :defer t)
+(use-package clojure-mode
+  :defer t
+  :mode "\\.clje\\'")
 
 (use-package clojure-ts-mode
   :defer t
